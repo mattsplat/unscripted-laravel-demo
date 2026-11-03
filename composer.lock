@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ea94c602eddb1aad3e25bf79509eee2a",
+    "content-hash": "28473e8ce7644ab80ffd484f2a05b8ac",
     "packages": [
         {
             "name": "brick/math",
@@ -6848,13 +6848,13 @@
             "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "git@github.com:mattsplat/unscripted-ui-server.git",
-                "reference": "c75704c60d1c37a9620a60c8590db2b8ca25f303"
+                "url": "https://github.com/mattsplat/unscripted-ui-server.git",
+                "reference": "6e9ccd033674807677c1593059f0cdecf2729141"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mattsplat/unscripted-ui-server/zipball/c75704c60d1c37a9620a60c8590db2b8ca25f303",
-                "reference": "c75704c60d1c37a9620a60c8590db2b8ca25f303",
+                "url": "https://api.github.com/repos/mattsplat/unscripted-ui-server/zipball/6e9ccd033674807677c1593059f0cdecf2729141",
+                "reference": "6e9ccd033674807677c1593059f0cdecf2729141",
                 "shasum": ""
             },
             "require": {
@@ -6891,12 +6891,12 @@
                 "MIT",
                 "Apache-2.0"
             ],
-            "description": "The server side of @unscripted/ui: serves components with their #[Server] methods kept on the server, and calls those methods for the browser. Laravel.",
+            "description": "The server side of @mtjncn/ui: serves components with their #[Server] methods kept on the server, and calls those methods for the browser. Laravel.",
             "support": {
                 "source": "https://github.com/mattsplat/unscripted-ui-server/tree/main",
                 "issues": "https://github.com/mattsplat/unscripted-ui-server/issues"
             },
-            "time": "2026-11-03T18:00:41+00:00"
+            "time": "2026-11-03T21:01:56+00:00"
         },
         {
             "name": "vlucas/phpdotenv",

@@ -88,6 +88,6 @@
     "repositories": [{
         "name": "unscripted",
         "type": "vcs",
-        "url": "git@github.com:mattsplat/unscripted-ui-server.git"
+        "url": "https://github.com/mattsplat/unscripted-ui-server"
     }]
 }

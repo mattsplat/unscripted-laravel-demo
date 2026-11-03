@@ -21,8 +21,6 @@ without Reverb, but you'll lose the live updates in Spread, Voxel and Rally.
 
 - **PHP 8.4** and **Composer**.
 - **Node**, through nvm: `nvm use` (the default, v20, works).
-- **Read access to `mattsplat/unscripted-ui-server`** on GitHub, with an SSH key: Composer
-  installs `unscripted/ui-server` from there. It's private.
 - **The `unscripted-js` checkout** next to this folder, at `../unscripted-js`:
   `public/vendor/unscripted/` links to its runtime and PHP build. Those npm packages aren't
   published anywhere yet.
