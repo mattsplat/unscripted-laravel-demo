@@ -1,0 +1,27 @@
+# The voxel demo's game, in the browser: world, movement and drawing (WebGL 2). The page's PHP
+# component (resources/components/voxel.blade.php) does the rest: joining, and sending moves and
+# blocks to the server and back.
+#
+# Build into public/wasm/voxel: npm run build:voxel. Needs the wasm32-unknown-unknown target and the
+# wasm-bindgen CLI at the crate's version (cargo install wasm-bindgen-cli --version 0.2.130).
+[package]
+name = "voxel"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "=0.2.130" # the wasm-bindgen CLI must match
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "Window", "Document", "Element", "HtmlCanvasElement", "KeyboardEvent", "MouseEvent", "Event",
+    "EventTarget", "CustomEvent", "CustomEventInit", "Performance",
+    "WebGl2RenderingContext", "WebGlProgram", "WebGlShader", "WebGlBuffer",
+    "WebGlVertexArrayObject", "WebGlUniformLocation",
+] }
+
+[profile.release]
+opt-level = "s"
+lto = true

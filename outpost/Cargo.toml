@@ -1,0 +1,30 @@
+# Outpost, the demo's team shooter, in the browser: drawing (WebGL 2), and your moves and shots
+# predicted with the game's rules (src/sim.rs), which the game server (server/) runs for real.
+# The page's PHP component (resources/components/outpost.blade.php) draws the HUD around it.
+#
+# Build into public/wasm/outpost: npm run build:outpost. Needs the wasm32-unknown-unknown target and
+# the wasm-bindgen CLI at the crate's version (cargo install wasm-bindgen-cli --version 0.2.130).
+[package]
+name = "outpost"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "=0.2.130" # the wasm-bindgen CLI must match
+js-sys = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+web-sys = { version = "0.3", features = [
+    "Window", "Document", "Element", "HtmlElement", "CssStyleDeclaration", "HtmlCanvasElement",
+    "KeyboardEvent", "MouseEvent", "Event", "EventTarget", "CustomEvent", "CustomEventInit",
+    "Performance", "WebGl2RenderingContext", "WebGlProgram", "WebGlShader", "WebGlBuffer",
+    "WebGlVertexArrayObject", "WebGlUniformLocation", "WebGlTexture", "WebGlFramebuffer",
+    "WebSocket", "MessageEvent", "WheelEvent",
+] }
+
+[profile.release]
+opt-level = "s"
+lto = true

@@ -1,0 +1,26 @@
+# Rally, the demo's table tennis against the computer, in the browser: the rules and the ball's
+# flight (src/sim.rs) and drawing (WebGL 2). The page's PHP component
+# (resources/components/rally.blade.php) draws the scoreboard and keeps the results.
+#
+# Build into public/wasm/rally: npm run build:rally. Test the rules: cargo test.
+[package]
+name = "rally"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "=0.2.130" # the wasm-bindgen CLI must match
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "Window", "Document", "Element", "HtmlElement", "HtmlCanvasElement", "MouseEvent", "Event",
+    "EventTarget", "CustomEvent", "CustomEventInit", "Performance", "WebGl2RenderingContext",
+    "WebGlProgram", "WebGlShader", "WebGlBuffer", "WebGlVertexArrayObject", "WebGlUniformLocation",
+    "WebGlTexture", "WebGlFramebuffer",
+] }
+
+[profile.release]
+opt-level = "s"
+lto = true

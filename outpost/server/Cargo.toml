@@ -1,0 +1,15 @@
+# Outpost's game server: runs the game (../src/sim.rs, the same rules the browser runs) 60 times
+# a second, and decides every move and hit. Pages talk to it over a WebSocket on port 8082.
+#
+# Run it from the demo: npm run outpost:server (cargo run --release, in here).
+[package]
+name = "outpost-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["rt", "net", "time", "sync", "macros"] }
+tokio-tungstenite = "0.26"
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

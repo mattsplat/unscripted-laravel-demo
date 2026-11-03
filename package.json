@@ -1,0 +1,23 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "build:voxel": "cd voxel && cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --target web --no-typescript --out-dir ../public/wasm/voxel target/wasm32-unknown-unknown/release/voxel.wasm",
+        "build:outpost": "cd outpost && cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --target web --no-typescript --out-dir ../public/wasm/outpost target/wasm32-unknown-unknown/release/outpost.wasm",
+        "build:rally": "cd rally && cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --target web --no-typescript --out-dir ../public/wasm/rally target/wasm32-unknown-unknown/release/rally.wasm",
+        "outpost:server": "cd outpost/server && cargo run --release -- ../../resources/outpost/map.json"
+    },
+    "devDependencies": {
+        "@tailwindcss/vite": "^4.0.0",
+        "concurrently": "^10.0.3",
+        "laravel-vite-plugin": "^3.1",
+        "tailwindcss": "^4.0.0",
+        "vite": "^8.0.0"
+    },
+    "optionalDependencies": {
+        "@laravel/multiplex": "^0.4.1"
+    }
+}
