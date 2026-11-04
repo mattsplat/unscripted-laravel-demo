@@ -7,7 +7,7 @@ SAND, PLASTER, STONE, CRATE, CONCRETE, BEAM, BRICK = range(7)
 boxes = []
 # The layout's scale across the ground: everything below is placed this much further apart (its
 # numbers are the original 66 x 46 m map's). Heights stay, and crates stay crate-sized.
-S = 1.5
+S = 3.0
 def box(x0, y0, z0, x1, y1, z1, m, scale=True):
     if scale:
         x0, x1, z0, z1 = x0 * S, x1 * S, z0 * S, z1 * S

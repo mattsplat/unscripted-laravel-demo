@@ -541,10 +541,10 @@ mod tests {
         let now = s.tick as f32;
         fire_along_x(&mut s, 1, now);
         assert_eq!(hp(&mut s, 2), 0, "at eye height: the head, which kills");
-        // Now with the spawn wall (x 30..31.5) between them.
+        // Now with the spawn wall (x 60..63) between them.
         let mut s = server();
-        join(&mut s, 1, 27.0, 0.0);
-        join(&mut s, 2, 35.0, 0.0);
+        join(&mut s, 1, 56.0, 0.0);
+        join(&mut s, 2, 67.0, 0.0);
         s.step();
         let now = s.tick as f32;
         fire_along_x(&mut s, 1, now);
@@ -819,7 +819,7 @@ mod tests {
                 // Standing in the open in the middle, beside the well.
                 let p = s.playing(1).unwrap();
                 if p.state.alive {
-                    p.state.pos = [-3.5, 0.0, 0.0];
+                    p.state.pos = [-7.0, 0.0, 0.0];
                 }
                 let (seq, view) = (p.queued + 1, s.tick as f32);
                 let input = Input { seq, yaw: std::f32::consts::FRAC_PI_2, ..Default::default() };

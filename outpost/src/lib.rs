@@ -1062,7 +1062,7 @@ impl Game {
 
         // Shadows: the map and the people, from the sun.
         let sun = normalize([-0.45, 0.82, 0.35]);
-        let light = multiply(&ortho(60.0, 1.0, 160.0), &look(mul(sun, 70.0), mul(sun, -1.0)));
+        let light = multiply(&ortho(110.0, 1.0, 320.0), &look(mul(sun, 150.0), mul(sun, -1.0)));
         gl.bind_framebuffer(GL::FRAMEBUFFER, Some(&self.shadow_fb));
         gl.viewport(0, 0, SHADOW, SHADOW);
         gl.clear(GL::DEPTH_BUFFER_BIT);
@@ -1091,7 +1091,7 @@ impl Game {
 
         let fov = self.fov();
         let (eye, yaw, pitch) = self.camera();
-        let projection = perspective(fov, w as f32 / h.max(1) as f32, 0.04, 220.0);
+        let projection = perspective(fov, w as f32 / h.max(1) as f32, 0.04, 400.0);
         let mvp = multiply(&projection, &look(eye, forward(yaw, pitch)));
 
         gl.use_program(Some(&self.sky));
