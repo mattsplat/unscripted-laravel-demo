@@ -62,7 +62,7 @@ the starting aim error in `bots.rs`.
 
 The guns you and everyone else hold are from Quaternius's
 [Ultimate Gun Pack](https://quaternius.com/packs/ultimategun.html) (CC0: `outpost/models/LICENSE.txt`):
-`AssaultRifle_1` (rifle), `Revolver_1` (magnum) and `SniperRifle_1` (sniper rifle), as OBJ in
+`AssaultRifle_2` (rifle), `Pistol_6` (magnum) and `SniperRifle_3` (sniper rifle), as OBJ in
 `outpost/models/`. `python3 outpost/guns.py public/wasm/outpost/guns` turns them into the
 `.bin` files the page loads (triangles with their colours); boxes stand in until they arrive.
 To use another gun from the pack, copy its `.obj` and `.mtl` into `outpost/models/`, change

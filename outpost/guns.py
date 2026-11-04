@@ -9,7 +9,7 @@
 import os, struct, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-GUNS = {"rifle": "AssaultRifle_1", "magnum": "Revolver_1", "sniper": "SniperRifle_1"}
+GUNS = {"rifle": "AssaultRifle_2", "magnum": "Pistol_6", "sniper": "SniperRifle_3"}
 SHINY = ("metal", "black", "grey", "glass")
 
 def materials(path):
