@@ -8,16 +8,28 @@
 //! - Fighting: it only knows about people it could see (ahead of it, nothing in between). It
 //!   takes a moment to react, its aim starts off and settles, and it fires as a person would:
 //!   the rifle in bursts standing still, the magnum a click at a time, the sniper rifle scoped.
+//! - Kept beatable: slow to react, their aim never quite still, seldom with the sniper rifle,
+//!   blind past `SIGHT` metres, and their shots do `DAMAGE` of a gun's damage to people.
+//!   `cargo test --release -- --ignored --nocapture` measures how deadly they are.
 
 use crate::sim::*;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
-/// Ticks from first seeing someone to first shooting at them (0.6 s).
-const REACT: u32 = 36;
+/// Ticks from first seeing someone to first shooting at them (1.1 s).
+const REACT: u32 = 66;
+/// How far off a bot's aim may be when it fires, against the size of what it's aiming at:
+/// more than 1 and it fires when roughly on, so some shots miss.
+const SLOPPY: f32 = 2.0;
+/// The most a bot's aim wobbles each tick (radians), however long it's been aiming.
+const WOBBLE: f32 = 0.018;
+/// The share of a gun's damage a bot's shots do: they're there to make a game, not to win it.
+pub const DAMAGE: f32 = 0.35;
+/// How far off a bot notices people, unless they've shot at it (metres).
+const SIGHT: f32 = 45.0;
 /// How far to either side a bot notices people (from straight ahead), unless it's already on
 /// to them.
-const FOV_COS: f32 = 0.57; // about 55 degrees
+const FOV_COS: f32 = 0.71; // about 45 degrees
 /// The most a bot turns in a tick (radians): about 4.8 a second.
 const TURN: f32 = 0.08;
 
@@ -299,7 +311,7 @@ impl Brain {
             self.last_seen = None;
             self.shot_from = None;
             let r = self.random();
-            self.gun = if r < 0.65 { RIFLE } else if r < 0.82 { SNIPER } else { PISTOL };
+            self.gun = if r < 0.7 { RIFLE } else if r < 0.75 { SNIPER } else { PISTOL };
         }
         let eye = me.eye();
         let mut keys = 0;
@@ -315,7 +327,7 @@ impl Brain {
                 let dist = dot(d, d).sqrt();
                 let flat = normalize([d[0], 0.0, d[2]]);
                 let noticed = Some(o.id) == self.target || self.shot_from.is_some() || dot(flat, ahead) > FOV_COS;
-                (noticed && dist < RANGE && map.ray(eye, mul(d, 1.0 / dist)).0 >= dist - 0.05).then_some((o, dist))
+                (noticed && dist < RANGE && (dist < SIGHT || self.shot_from.is_some() || Some(o.id) == self.target) && map.ray(eye, mul(d, 1.0 / dist)).0 >= dist - 0.05).then_some((o, dist))
             })
             .min_by(|a, b| a.1.total_cmp(&b.1));
 
@@ -335,12 +347,13 @@ impl Brain {
 
             let height = if self.head { 1.62 } else { 1.2 } - o.crouch * CROUCH_DROP;
             let (want_yaw, want_pitch) = angles(eye, add(o.pos, [0.0, height, 0.0]));
-            self.error = [self.error[0] * 0.96, self.error[1] * 0.96];
+            let wobble = [(self.random() - 0.5) * 2.0 * WOBBLE, (self.random() - 0.5) * WOBBLE];
+            self.error = [self.error[0] * 0.96 + wobble[0], self.error[1] * 0.96 + wobble[1]];
             self.look(want_yaw + self.error[0], want_pitch + self.error[1]);
             // How far off the aim is, against how big the target looks from here.
             let off = turn(self.yaw, want_yaw).abs() + (want_pitch - self.pitch).abs();
             let size = (if self.head { 0.11 } else { 0.2 }) / dist;
-            let ready = tick - self.seen_at >= REACT && off < size;
+            let ready = tick - self.seen_at >= REACT && off < size * SLOPPY;
 
             let mut firing = false;
             match self.gun {

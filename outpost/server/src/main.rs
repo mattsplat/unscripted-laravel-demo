@@ -334,6 +334,9 @@ impl Server {
 
     fn damage(&mut self, by: u32, victim: u32, amount: i32, head: bool, gun: u8) {
         let from = self.playing(by).map(|p| p.state.pos);
+        // Bots hit people softer (each other at full strength, so their fights still end).
+        let bot = |id: u32| self.clients.get(&id).is_some_and(|c| c.brain.is_some());
+        let amount = if bot(by) && !bot(victim) { (amount as f32 * bots::DAMAGE).ceil() as i32 } else { amount };
         if let Some(brain) = self.clients.get_mut(&victim).and_then(|c| c.brain.as_mut()) {
             brain.shot_from = from;
         }
@@ -743,6 +746,37 @@ mod tests {
         assert!(!path.is_empty());
         let end = path.last().unwrap();
         assert!((end[0] - to[0]).abs() < 1.0 && (end[2] - to[2]).abs() < 1.0);
+    }
+
+    /// How deadly the bots are, to tune them by: a player standing in the open mid-map, who never shoots, against
+    /// two bots a side, for three minutes. `cargo test --release -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn how_deadly_the_bots_are() {
+        let (mut deaths, mut kills) = (0, 0);
+        for seed in 0..4 {
+            let mut s = with_bots(2);
+            for _ in 0..seed * 37 {
+                s.step();
+            }
+            let (out, _) = unbounded_channel();
+            s.receive(1, From::Open(out));
+            s.receive(1, From::Message(ToServer::Join { name: "Still".into() }));
+            for _ in 0..180 * TICK_RATE {
+                // Standing in the open in the middle, beside the well.
+                let p = s.playing(1).unwrap();
+                if p.state.alive {
+                    p.state.pos = [-3.5, 0.0, 0.0];
+                }
+                let (seq, view) = (p.queued + 1, s.tick as f32);
+                let input = Input { seq, yaw: std::f32::consts::FRAC_PI_2, ..Default::default() };
+                s.receive(1, From::Message(ToServer::Input { view, inputs: vec![input] }));
+                s.step();
+            }
+            deaths += s.clients[&1].playing.as_ref().unwrap().deaths;
+            kills += s.clients.values().filter_map(|c| c.playing.as_ref()).map(|p| p.kills).sum::<u32>();
+        }
+        println!("a player standing in the middle died {:.1} times a minute; {:.1} kills a minute in all", deaths as f32 / 12.0, kills as f32 / 12.0);
     }
 
     #[test]
