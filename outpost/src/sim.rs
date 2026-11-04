@@ -105,7 +105,8 @@ pub struct Gun {
     pub damage: [i32; 4],
     /// Fires for as long as the trigger's held; otherwise once a click.
     pub auto: bool,
-    /// Standing still, more at a run, and more for each shot in a quick string.
+    /// Standing still, more at a run, and more for each shot in a quick string. (Not for the
+    /// rifle's or magnum's first shot after a pause: that goes where it's aimed.)
     pub spread: f32,
     pub moving: f32,
     pub per_shot: f32,
@@ -534,7 +535,9 @@ impl Player {
         let right = [c, 0.0, s];
         let up = cross(right, aim);
         let a = noise(self.seed, self.shots, 0) * std::f32::consts::TAU;
-        let r = noise(self.seed, self.shots, 1).sqrt() * self.spread();
+        // The rifle's and magnum's first shot (after a pause) goes where it's aimed.
+        let first = self.burst == 1 && self.gun != SNIPER;
+        let r = if first { 0.0 } else { noise(self.seed, self.shots, 1).sqrt() * self.spread() };
         let dir = normalize(add(aim, add(mul(right, a.cos() * r), mul(up, a.sin() * r))));
 
         // Recoil. The rifle's climbs for the first shots, then wanders side to side; the others

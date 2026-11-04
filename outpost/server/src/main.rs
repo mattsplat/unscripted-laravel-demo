@@ -149,6 +149,9 @@ impl Server {
         state.spawn(at, yaw);
         let view = self.tick as f32;
         let Some(client) = self.clients.get_mut(&id) else { return };
+        if client.brain.is_some() {
+            state.shield = 0; // the look-around after spawning is for people
+        }
         client.playing = Some(Playing { name, state, queue: VecDeque::new(), queued: 0, ack: 0, view, kills: 0, deaths: 0, dead: 0 });
         send(&client.out, &ToClient::Welcome { id, team });
         self.roster_changed = true;
@@ -238,7 +241,12 @@ impl Server {
                 if p.dead == 0 {
                     let team = p.state.team;
                     let (at, yaw) = self.spawn_point(team, id);
-                    self.playing(id).unwrap().state.spawn(at, yaw);
+                    let bot = self.clients.get(&id).is_some_and(|c| c.brain.is_some());
+                    let state = &mut self.playing(id).unwrap().state;
+                    state.spawn(at, yaw);
+                    if bot {
+                        state.shield = 0; // the look-around after spawning is for people
+                    }
                     self.roster_changed = true;
                 }
             }
@@ -582,6 +590,51 @@ mod tests {
         let now = s.tick as f32;
         fire_along_x(&mut s, 1, now);
         assert!(hp(&mut s, 2) < 100, "fair game once out");
+    }
+
+    #[test]
+    fn bots_get_no_look_around() {
+        let mut s = with_bots(2);
+        s.step();
+        let bots: Vec<&Playing> = s.clients.values().filter(|c| c.brain.is_some()).filter_map(|c| c.playing.as_ref()).collect();
+        assert_eq!(bots.len(), 4);
+        assert!(bots.iter().all(|p| p.state.alive && p.state.shield == 0));
+        // And again after dying.
+        let id = *s.clients.iter().find(|(_, c)| c.brain.is_some()).unwrap().0;
+        s.damage(1, id, 1000, false, RIFLE);
+        for _ in 0..RESPAWN_TICKS + 1 {
+            s.step();
+        }
+        let p = s.playing(id).unwrap();
+        assert!(p.state.alive && p.state.shield == 0);
+    }
+
+    #[test]
+    fn the_first_rifle_and_magnum_shot_goes_where_its_aimed() {
+        let s = server();
+        for gun in [RIFLE, PISTOL] {
+            let mut p = Player::new(3, 0);
+            p.spawn([-9.0, 0.0, 2.0], 0.0);
+            p.shield = 0;
+            p.gun = gun;
+            // Running, which throws other shots off.
+            let run = |keys| Input { keys, yaw: 0.4, pitch: 0.1, gun, ..Default::default() };
+            for _ in 0..30 {
+                p.step(&run(keys::FORWARD), &s.map, &[]);
+            }
+            let aim = forward(0.4, 0.1);
+            let shot = p.step(&run(keys::FORWARD | keys::FIRE), &s.map, &[]).expect("fires");
+            assert!(dot(shot.dir, aim) > 0.99999, "gun {gun}: the first shot is exact");
+            // Later ones in the string aren't.
+            let mut off = 0.0f32;
+            for _ in 0..40 {
+                p.step(&run(keys::FORWARD), &s.map, &[]); // the magnum fires once a click
+                if let Some(shot) = p.step(&run(keys::FORWARD | keys::FIRE), &s.map, &[]) {
+                    off = off.max(1.0 - dot(shot.dir, forward(p.yaw + p.punch[1], p.pitch + p.punch[0])));
+                }
+            }
+            assert!(off > 1e-5, "gun {gun}: the rest spread");
+        }
     }
 
     #[test]
