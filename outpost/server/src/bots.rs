@@ -337,7 +337,7 @@ impl Brain {
             self.last_seen = None;
             self.shot_from = None;
             let r = self.random();
-            self.gun = if r < self.skill.sniper { SNIPER } else if r < 0.7 + self.skill.sniper { RIFLE } else { PISTOL };
+            self.gun = if r < self.skill.sniper { SNIPER } else if r < 0.65 + self.skill.sniper { RIFLE } else if r < 0.82 + self.skill.sniper { PISTOL } else { FIVESEVEN };
         }
         let eye = me.eye();
         let mut keys = 0;
@@ -364,7 +364,7 @@ impl Brain {
                 self.seen_at = tick;
                 self.head = self.random() < self.skill.head;
                 self.error = [(self.random() - 0.5) * self.skill.aim[0], (self.random() - 0.5) * self.skill.aim[1]];
-                self.crouching = self.gun != PISTOL && dist > 12.0 && self.random() < 0.4;
+                self.crouching = !handgun(self.gun) && dist > 12.0 && self.random() < 0.4;
             }
             self.last_seen = Some(o.pos);
             self.shot_from = None;
@@ -390,7 +390,7 @@ impl Brain {
                     }
                     firing = ready && me.scoped && me.speed() < 0.4;
                 }
-                PISTOL => firing = ready && !me.trigger && me.cooldown == 0,
+                PISTOL | FIVESEVEN => firing = ready && !me.trigger && me.cooldown == 0,
                 _ => {
                     if self.burst > 0 {
                         self.burst -= 1;

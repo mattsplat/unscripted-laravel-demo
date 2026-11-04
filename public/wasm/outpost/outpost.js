@@ -42,7 +42,7 @@ export function lineup(gun, scales, at) {
 }
 
 /**
- * Gun `gun`'s model (0 rifle, 1 magnum, 2 sniper rifle): 10 floats a vertex, from
+ * Gun `gun`'s model (0 rifle, 1 magnum, 2 sniper rifle, 3 FiveSeven): 10 floats a vertex, from
  * public/wasm/outpost/guns/ (outpost/guns.py).
  * @param {number} gun
  * @param {Float32Array | number[]} data

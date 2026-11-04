@@ -773,6 +773,27 @@ mod tests {
     }
 
     #[test]
+    fn the_fiveseven_holds_twenty_hits_lighter_and_handguns_run_faster() {
+        let g = &GUNS[FIVESEVEN as usize];
+        assert_eq!(g.mag, 20);
+        assert!(g.damage[2] * 3 < 100 && g.damage[2] * 4 >= 100, "four to the body");
+        assert!(g.damage[1] < 100 && g.damage[1] * 2 >= 100, "two to the head");
+        let s = server();
+        let ran = |gun: u8| {
+            let mut p = Player::new(1, 0);
+            p.spawn([-9.0, 0.0, 2.0], 0.0);
+            p.shield = 0;
+            hold(&mut p, &s.map, 0, gun, 60);
+            let from = p.pos;
+            hold(&mut p, &s.map, keys::FORWARD, gun, 60);
+            let d = sub(p.pos, from);
+            dot(d, d).sqrt()
+        };
+        let rifle = ran(RIFLE);
+        assert!(ran(FIVESEVEN) > rifle * 1.08 && ran(PISTOL) > rifle * 1.08, "{rifle} vs {} and {}", ran(FIVESEVEN), ran(PISTOL));
+    }
+
+    #[test]
     fn the_sniper_is_only_accurate_scoped_and_scopes_again_after_the_bolt() {
         let s = server();
         let mut p = Player::new(1, 0);

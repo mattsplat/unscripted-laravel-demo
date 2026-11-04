@@ -17,7 +17,7 @@
 //!   [1/0] (the mouse let go).
 //!
 //! Controls: click to play (pointer lock), WASD to move, shift to crouch, space to jump, mouse to
-//! shoot, right button to scope (the sniper rifle), 1 / 2 / 3, Q or the wheel to change guns,
+//! shoot, right button to scope (the sniper rifle), 1 / 2 / 3 / 4, Q or the wheel to change guns,
 //! R to reload, Tab for the scores.
 
 #[allow(dead_code)] // some rules are only the server's (respawning, damage)
@@ -183,10 +183,10 @@ fn part(v: &mut Vec<f32>, min: V3, max: V3, mat: f32, col: V3, at: &dyn Fn(V3) -
 }
 
 thread_local! {
-    /// The guns' models (rifle, magnum, sniper rifle), once the page has handed them over
+    /// The guns' models (rifle, magnum, sniper rifle, FiveSeven), once the page has handed them over
     /// (`model`): 10 floats a vertex, in a gun space with the butt at z 0, the muzzle at z 1 and
     /// the bore at y 0 (outpost/guns.py). Until then, guns are drawn from boxes.
-    static MODELS: RefCell<[Vec<f32>; 3]> = const { RefCell::new([Vec::new(), Vec::new(), Vec::new()]) };
+    static MODELS: RefCell<[Vec<f32>; 4]> = const { RefCell::new([Vec::new(), Vec::new(), Vec::new(), Vec::new()]) };
 }
 
 /// Gun `gun`'s model, if it's loaded: its butt (on the bore) at `butt` and its muzzle `length`
@@ -276,12 +276,13 @@ const NECK: V3 = [0.0, 1.46, 0.0];
 /// The sniper rifle's furniture: olive.
 const OLIVE: V3 = [0.25, 0.28, 0.19];
 /// Each gun's muzzle, in your own view's gun space.
-const MUZZLES: [V3; 3] = [[0.0, 0.009, 0.69], [0.0, 0.03, 0.17], [0.0, 0.006, 0.98]];
+const MUZZLES: [V3; 4] = [[0.0, 0.009, 0.69], [0.0, 0.03, 0.17], [0.0, 0.006, 0.98], [0.0, 0.03, 0.125]];
 
 /// Where someone else's gun's muzzle is, in their own space.
 fn remote_muzzle(gun: u8) -> V3 {
     match gun {
         PISTOL => [0.02, 1.345, 0.7],
+        FIVESEVEN => [0.02, 1.345, 0.625],
         SNIPER => [0.075, 1.26, 1.415],
         _ => [0.075, 1.265, 1.09],
     }
@@ -414,7 +415,7 @@ impl Remote {
         // it; a pistol out in front in both hands.
         let glove = STRAP;
         let joints: [(V3, V3, V3); 2] = match self.gun {
-            PISTOL => [
+            PISTOL | FIVESEVEN => [
                 ([0.2, 1.38, 0.0], [0.21, 1.2, 0.2], [0.04, 1.29, 0.4]),
                 ([-0.2, 1.38, 0.0], [-0.15, 1.18, 0.22], [-0.01, 1.28, 0.41]),
             ],
@@ -441,15 +442,16 @@ impl Remote {
             // Drawn bigger than life (the magnum 1.5 times, the others 1.3), so they read at a
             // distance; `lineup` shows the sizes side by side.
             PISTOL => ([0.02, 1.345, 0.34], 0.36),
+            FIVESEVEN => ([0.02, 1.345, 0.355], 0.27),
             SNIPER => ([0.075, 1.26, -0.184], 1.6),
             _ => ([0.075, 1.265, -0.158], 1.248),
         };
-        let hand = if self.gun == PISTOL { 0.4 } else { 0.18 };
+        let hand = if handgun(self.gun) { 0.4 } else { 0.18 };
         let butt = [butt[0], butt[1], hand + (butt[2] - hand) * self.gun_scale];
         let length = length * self.gun_scale;
         let modeled = gun_model(v, self.gun, butt, length, &arms);
         if !modeled { match self.gun {
-            PISTOL => {
+            PISTOL | FIVESEVEN => {
                 let x = 0.02;
                 part(v, [x - 0.02, 1.31, 0.36], [x + 0.02, 1.36, 0.6], SHINY, METAL, &arms); // slide
                 part(v, [x - 0.017, 1.29, 0.38], [x + 0.017, 1.31, 0.55], SHINY, METAL, &arms); // frame
@@ -561,7 +563,7 @@ struct Game {
     trigger: bool,
     scope_button: bool,
     reload_key: bool,
-    /// The gun asked for (1 / 2 / 3, Q, the wheel), and the one before it, for Q.
+    /// The gun asked for (1 to 4, Q, the wheel), and the one before it, for Q.
     want_gun: u8,
     last_gun: u8,
     /// The gun last shown out, and when it came out: for its draw.
@@ -948,6 +950,7 @@ impl Game {
         let speed = self.me.speed() / RUN;
         let (base, kick) = match self.me.gun {
             PISTOL => ([0.12, -0.15, 0.36], 0.12),
+            FIVESEVEN => ([0.12, -0.15, 0.36], 0.07),
             SNIPER => ([0.15, -0.18, 0.28], 0.14),
             _ => ([0.15, -0.17, 0.3], 0.05),
         };
@@ -1182,8 +1185,9 @@ impl Game {
         let mag_out = (0.25..0.6).contains(&self.reloaded());
         let glove = [0.13, 0.12, 0.1];
         match self.me.gun {
-            PISTOL => {
-                if !gun_model(v, PISTOL, [0.0, 0.03, -0.085], 0.255, &at) {
+            PISTOL | FIVESEVEN => {
+                let (butt, length) = if self.me.gun == PISTOL { ([0.0, 0.03, -0.085], 0.255) } else { ([0.0, 0.03, -0.065], 0.19) };
+                if !gun_model(v, self.me.gun, butt, length, &at) {
                 let shiny: [(V3, V3); 6] = [
                     ([-0.021, 0.0, -0.085], [0.021, 0.045, 0.165]),   // slide
                     ([-0.006, 0.045, -0.07], [0.006, 0.052, 0.155]),  // rib
@@ -1756,6 +1760,7 @@ pub fn start(canvas_id: &str, boxes: Vec<f32>, url: &str) -> Result<(), JsValue>
                 "Digit1" => g.choose(RIFLE),
                 "Digit2" => g.choose(PISTOL),
                 "Digit3" => g.choose(SNIPER),
+                "Digit4" => g.choose(FIVESEVEN),
                 "KeyQ" if !e.repeat() => g.choose(g.last_gun),
                 _ => {}
             }
@@ -1804,7 +1809,7 @@ pub fn start(canvas_id: &str, boxes: Vec<f32>, url: &str) -> Result<(), JsValue>
     Ok(())
 }
 
-/// Gun `gun`'s model (0 rifle, 1 magnum, 2 sniper rifle): 10 floats a vertex, from
+/// Gun `gun`'s model (0 rifle, 1 magnum, 2 sniper rifle, 3 FiveSeven): 10 floats a vertex, from
 /// public/wasm/outpost/guns/ (outpost/guns.py).
 #[wasm_bindgen]
 pub fn model(gun: u8, data: Vec<f32>) {

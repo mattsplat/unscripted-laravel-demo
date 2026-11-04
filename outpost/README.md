@@ -3,7 +3,7 @@
 A team shooter (Raiders against Guards, team deathmatch) on one fixed map. Open `/outpost`,
 with the game server running: `npm run outpost:server` (port 8082).
 
-- `outpost/src/sim.rs`: the rules: movement and crouching, the three guns (the `GUNS` table: rifle, magnum, sniper), what a shot hits, and the messages
+- `outpost/src/sim.rs`: the rules: movement and crouching, the four guns (the `GUNS` table: rifle, magnum, sniper, FiveSeven), what a shot hits, and the messages
   the game and its server send each other. Both build it.
 - `outpost/server/`: the game server (native Rust: tokio, WebSockets). It runs the game 60
   times a second and decides every move and hit. `cargo test` in there tests its rules.
@@ -62,7 +62,7 @@ the starting aim error in `bots.rs`.
 
 The guns you and everyone else hold are from Quaternius's
 [Ultimate Gun Pack](https://quaternius.com/packs/ultimategun.html) (CC0: `outpost/models/LICENSE.txt`):
-`AssaultRifle_2` (rifle), `Pistol_6` (magnum) and `SniperRifle_3` (sniper rifle), as OBJ in
+`AssaultRifle_2` (rifle), `Pistol_6` (magnum), `SniperRifle_3` (sniper rifle) and `Pistol_5` (FiveSeven), as OBJ in
 `outpost/models/`. `python3 outpost/guns.py public/wasm/outpost/guns` turns them into the
 `.bin` files the page loads (triangles with their colours); boxes stand in until they arrive.
 To use another gun from the pack, copy its `.obj` and `.mtl` into `outpost/models/`, change

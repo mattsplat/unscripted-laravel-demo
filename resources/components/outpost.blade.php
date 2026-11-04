@@ -12,7 +12,7 @@ new class extends Component {
     /** By team number: the CSS class, and the name. */
     const TEAMS = [['raiders', 'Raiders'], ['guards', 'Guards']];
     /** By gun number: its kill-feed icon. */
-    const GUNS = ['rifle', 'pistol', 'sniper'];
+    const GUNS = ['rifle', 'pistol', 'sniper', 'fiveseven'];
     /** The bots' levels, for the whole match: anyone can change it, and everyone sees. */
     const LEVELS = ['Off', 'Easy', 'Normal', 'Hard'];
 

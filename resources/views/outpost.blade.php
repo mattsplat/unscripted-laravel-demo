@@ -46,6 +46,8 @@
     .feed .head { color: #ff6b5a; }
     .feed .pistol { width: 20px; height: 7px; background: #ddd; border-radius: 1px; position: relative; }
     .feed .pistol::after { content: ""; position: absolute; left: 2px; top: 6px; width: 6px; height: 7px; background: #ddd; transform: skewX(-12deg); }
+    .feed .fiveseven { width: 16px; height: 6px; background: #ddd; border-radius: 1px; position: relative; }
+    .feed .fiveseven::after { content: ""; position: absolute; left: 2px; top: 5px; width: 5px; height: 6px; background: #ddd; transform: skewX(-12deg); }
     .feed .sniper { width: 48px; height: 5px; background: #ddd; border-radius: 1px; position: relative; }
     .feed .sniper::before { content: ""; position: absolute; left: 14px; top: -5px; width: 16px; height: 4px; background: #ddd; border-radius: 2px; }
     .feed .sniper::after { content: ""; position: absolute; left: 6px; top: 4px; width: 5px; height: 6px; background: #ddd; }
@@ -93,7 +95,7 @@
   <div id="ammo"></div>
   <div id="scope"></div>
   <div id="fps"></div>
-  <div class="help">Click to play · WASD move · shift crouch · space jump · mouse shoot · right-click scope · 1 rifle, 2 magnum, 3 sniper (or Q, wheel) · R reload · Tab scores · Esc lets go</div>
+  <div class="help">Click to play · WASD move · shift crouch · space jump · mouse shoot · right-click scope · 1 rifle, 2 magnum, 3 sniper, 4 FiveSeven (or Q, wheel) · R reload · Tab scores · Esc lets go</div>
 
   {{-- The game (outpost/, built into public/wasm/outpost), and its game server (outpost/server:
        npm run outpost:server) on this host's port 8082. Sounds are made here, as the game asks. --}}
@@ -141,9 +143,11 @@
       };
       if (kind === 0 && gun === 0) { burst(t, 0.16, 0.45, 'lowpass', 5000); tone(t, 150, 45, 0.12, 0.5); }
       if (kind === 0 && gun === 1) { burst(t, 0.22, 0.55, 'lowpass', 3500); tone(t, 120, 38, 0.17, 0.6); }
+      if (kind === 0 && gun === 3) { burst(t, 0.12, 0.38, 'lowpass', 6000); tone(t, 190, 60, 0.09, 0.4); }
       if (kind === 0 && gun === 2) { burst(t, 0.5, 0.7, 'lowpass', 2600); tone(t, 90, 26, 0.4, 0.8); burst(t + 0.06, 0.9, 0.14, 'lowpass', 600); }
       if (kind === 1 && gun === 0) { burst(t, 0.22, 0.4 * volume, 'lowpass', 900 + 2500 * volume); tone(t, 110, 40, 0.14, 0.35 * volume); }
       if (kind === 1 && gun === 1) { burst(t, 0.26, 0.45 * volume, 'lowpass', 700 + 2000 * volume); tone(t, 95, 35, 0.18, 0.4 * volume); }
+      if (kind === 1 && gun === 3) { burst(t, 0.18, 0.35 * volume, 'lowpass', 1000 + 2800 * volume); tone(t, 130, 48, 0.12, 0.3 * volume); }
       if (kind === 1 && gun === 2) { burst(t, 0.7, 0.6 * volume, 'lowpass', 500 + 2000 * volume); tone(t, 70, 24, 0.45, 0.55 * volume); }
       if (kind === 2) tone(t, 2200, 1800, 0.05, 0.12, 'square');
       if (kind === 3) { burst(t + 0.5, 0.05, 0.3, 'highpass', 2500); burst(t + 1.9, 0.06, 0.35, 'highpass', 2000); }
@@ -173,7 +177,7 @@
     if (joining) game.join(joining);
 
     // The guns' models (Quaternius's Ultimate Gun Pack, CC0): boxes stand in until they're here.
-    ['rifle', 'magnum', 'sniper'].forEach((name, gun) =>
+    ['rifle', 'magnum', 'sniper', 'fiveseven'].forEach((name, gun) =>
       fetch(`/wasm/outpost/guns/${name}.bin`).then((r) => r.arrayBuffer()).then((b) => game.model(gun, new Float32Array(b))));
   </script>
 

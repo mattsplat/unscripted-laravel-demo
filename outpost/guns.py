@@ -1,4 +1,4 @@
-# The guns' models: writes public/wasm/outpost/guns/{rifle,magnum,sniper}.bin from
+# The guns' models: writes public/wasm/outpost/guns/{rifle,magnum,sniper,fiveseven}.bin from
 # outpost/models/ (Quaternius's Ultimate Gun Pack, CC0: see outpost/models/LICENSE.txt). Run:
 #   python3 outpost/guns.py public/wasm/outpost/guns
 #
@@ -9,7 +9,7 @@
 import os, struct, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-GUNS = {"rifle": "AssaultRifle_2", "magnum": "Pistol_6", "sniper": "SniperRifle_3"}
+GUNS = {"rifle": "AssaultRifle_2", "magnum": "Pistol_6", "sniper": "SniperRifle_3", "fiveseven": "Pistol_5"}
 SHINY = ("metal", "black", "grey", "glass")
 
 def materials(path):

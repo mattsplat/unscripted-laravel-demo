@@ -121,8 +121,14 @@ pub struct Gun {
 pub const RIFLE: u8 = 0;
 pub const PISTOL: u8 = 1;
 pub const SNIPER: u8 = 2;
+pub const FIVESEVEN: u8 = 3;
 
-pub const GUNS: [Gun; 3] = [
+/// Whether `gun`'s a handgun, held out in front in both hands.
+pub fn handgun(gun: u8) -> bool {
+    gun == PISTOL || gun == FIVESEVEN
+}
+
+pub const GUNS: [Gun; 4] = [
     // An assault rifle: 600 a minute, three to the body or one to the head.
     Gun {
         name: "Rifle",
@@ -154,7 +160,7 @@ pub const GUNS: [Gun; 3] = [
         moving: 0.05,
         per_shot: 0.014,
         kick: 0.05,
-        speed: 1.04,
+        speed: 1.12,
         zoom: 0.0,
     },
     // A bolt-action sniper rifle: kills with any shot above the legs, a shot every 1.5 s,
@@ -174,6 +180,24 @@ pub const GUNS: [Gun; 3] = [
         kick: 0.06,
         speed: 0.82,
         zoom: 0.31, // about 18 degrees
+    },
+    // A light pistol: twenty small rounds, quick to fire and to reload; four to the body, two
+    // to the head.
+    Gun {
+        name: "FiveSeven",
+        fire_ticks: 8,
+        reload_ticks: 102,
+        draw_ticks: 18,
+        mag: 20,
+        reserve: 100,
+        damage: [0, 55, 26, 20],
+        auto: false,
+        spread: 0.003,
+        moving: 0.035,
+        per_shot: 0.005,
+        kick: 0.022,
+        speed: 1.12,
+        zoom: 0.0,
     },
 ];
 
@@ -322,8 +346,8 @@ pub struct Player {
     pub punch: [f32; 2],
     /// The gun out, and each gun's rounds: in it, and spare.
     pub gun: u8,
-    pub ammo: [i32; 3],
-    pub reserve: [i32; 3],
+    pub ammo: [i32; 4],
+    pub reserve: [i32; 4],
     /// Looking through the scope; to look through it again once the bolt's worked.
     pub scoped: bool,
     pub rescope: bool,
