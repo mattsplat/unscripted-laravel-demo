@@ -13,13 +13,13 @@ use crate::sim::*;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
-/// Ticks from first seeing someone to first shooting at them (0.3 s).
-const REACT: u32 = 18;
+/// Ticks from first seeing someone to first shooting at them (0.6 s).
+const REACT: u32 = 36;
 /// How far to either side a bot notices people (from straight ahead), unless it's already on
 /// to them.
-const FOV_COS: f32 = 0.34; // about 70 degrees
-/// The most a bot turns in a tick (radians): about 7 a second.
-const TURN: f32 = 0.12;
+const FOV_COS: f32 = 0.57; // about 55 degrees
+/// The most a bot turns in a tick (radians): about 4.8 a second.
+const TURN: f32 = 0.08;
 
 /// Where people fit on the ground: cells of `CELL` metres.
 pub struct Nav {
@@ -324,8 +324,8 @@ impl Brain {
                 // Someone new: a moment to react, and the aim starts off.
                 self.target = Some(o.id);
                 self.seen_at = tick;
-                self.head = self.random() < 0.3;
-                self.error = [(self.random() - 0.5) * 0.25, (self.random() - 0.5) * 0.12];
+                self.head = self.random() < 0.1;
+                self.error = [(self.random() - 0.5) * 0.6, (self.random() - 0.5) * 0.3];
                 self.crouching = self.gun != PISTOL && dist > 12.0 && self.random() < 0.4;
             }
             self.last_seen = Some(o.pos);
@@ -335,7 +335,7 @@ impl Brain {
 
             let height = if self.head { 1.62 } else { 1.2 } - o.crouch * CROUCH_DROP;
             let (want_yaw, want_pitch) = angles(eye, add(o.pos, [0.0, height, 0.0]));
-            self.error = [self.error[0] * 0.93, self.error[1] * 0.93];
+            self.error = [self.error[0] * 0.96, self.error[1] * 0.96];
             self.look(want_yaw + self.error[0], want_pitch + self.error[1]);
             // How far off the aim is, against how big the target looks from here.
             let off = turn(self.yaw, want_yaw).abs() + (want_pitch - self.pitch).abs();
@@ -359,9 +359,9 @@ impl Brain {
                         self.rest -= 1;
                     } else if ready {
                         // Shorter bursts further off.
-                        let shots = if dist > 20.0 { 3 } else { 6 + (self.random() * 8.0) as u32 };
+                        let shots = if dist > 20.0 { 3 } else { 4 + (self.random() * 5.0) as u32 };
                         self.burst = shots * GUNS[RIFLE as usize].fire_ticks;
-                        self.rest = 12 + (self.random() * 14.0) as u32;
+                        self.rest = 24 + (self.random() * 24.0) as u32;
                         firing = true;
                     }
                 }

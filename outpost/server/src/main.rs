@@ -527,10 +527,10 @@ mod tests {
         let now = s.tick as f32;
         fire_along_x(&mut s, 1, now);
         assert_eq!(hp(&mut s, 2), 0, "at eye height: the head, which kills");
-        // Now with the spawn wall (x 20..21) between them.
+        // Now with the spawn wall (x 30..31.5) between them.
         let mut s = server();
-        join(&mut s, 1, 17.0, 0.0);
-        join(&mut s, 2, 23.0, 0.0);
+        join(&mut s, 1, 27.0, 0.0);
+        join(&mut s, 2, 35.0, 0.0);
         s.step();
         let now = s.tick as f32;
         fire_along_x(&mut s, 1, now);

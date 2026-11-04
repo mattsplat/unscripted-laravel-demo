@@ -5,13 +5,19 @@ import json, math, sys
 # Materials: 0 sand, 1 plaster, 2 stone, 3 crate, 4 concrete, 5 dark wood, 6 brick
 SAND, PLASTER, STONE, CRATE, CONCRETE, BEAM, BRICK = range(7)
 boxes = []
-def box(x0, y0, z0, x1, y1, z1, m):
+# The layout's scale across the ground: everything below is placed this much further apart (its
+# numbers are the original 66 x 46 m map's). Heights stay, and crates stay crate-sized.
+S = 1.5
+def box(x0, y0, z0, x1, y1, z1, m, scale=True):
+    if scale:
+        x0, x1, z0, z1 = x0 * S, x1 * S, z0 * S, z1 * S
     boxes.append([min(x0,x1), y0, min(z0,z1), max(x0,x1), y1, max(z0,z1), m])
-def both(x0, y0, z0, x1, y1, z1, m):  # east side and its mirror in the west
-    box(x0, y0, z0, x1, y1, z1, m)
-    box(-x0, y0, z0, -x1, y1, z1, m)
+def both(x0, y0, z0, x1, y1, z1, m, scale=True):  # east side and its mirror in the west
+    box(x0, y0, z0, x1, y1, z1, m, scale)
+    box(-x0, y0, z0, -x1, y1, z1, m, scale)
 def crate(x, z, y=0.0, s=1.1):
-    both(x - s/2, y, z - s/2, x + s/2, y + s, z + s/2, CRATE)
+    x, z = x * S, z * S
+    both(x - s/2, y, z - s/2, x + s/2, y + s, z + s/2, CRATE, scale=False)
 
 # Ground and the outer walls.
 box(-33, -1, -23, 33, 0, 23, SAND)
@@ -59,8 +65,8 @@ both(16, 0, -14.5, 19, 1.0, -14.0, STONE)
 crate(13, -20.5)
 
 spawns = {
-    "raiders": [[-28, 0, z, math.pi / 2] for z in (-10, -5, 0, 5, 10)],
-    "guards": [[28, 0, z, -math.pi / 2] for z in (-10, -5, 0, 5, 10)],
+    "raiders": [[-28 * S, 0, z * S, math.pi / 2] for z in (-10, -5, 0, 5, 10)],
+    "guards": [[28 * S, 0, z * S, -math.pi / 2] for z in (-10, -5, 0, 5, 10)],
 }
 # No spawn may start inside something.
 for team in spawns.values():
