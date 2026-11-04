@@ -15,8 +15,9 @@ def box(x0, y0, z0, x1, y1, z1, m, scale=True):
 def both(x0, y0, z0, x1, y1, z1, m, scale=True):  # east side and its mirror in the west
     box(x0, y0, z0, x1, y1, z1, m, scale)
     box(-x0, y0, z0, -x1, y1, z1, m, scale)
-def crate(x, z, y=0.0, s=1.1):
-    x, z = x * S, z * S
+def crate(x, z, y=0.0, s=1.1, dx=0.0, dz=0.0):
+    # dx, dz: an offset in metres, not scaled, so crates in a stack stay touching.
+    x, z = x * S + dx, z * S + dz
     both(x - s/2, y, z - s/2, x + s/2, y + s, z + s/2, CRATE, scale=False)
 
 # Ground and the outer walls.
@@ -49,13 +50,11 @@ both(20, 0, -22, 21, 3.2, -15, STONE)
 both(20, 0, -3.5, 21, 3.2, 3.5, STONE)
 both(20, 0, 15, 21, 3.2, 22, STONE)
 crate(26, 6); crate(26, -6)
-crate(17.5, -9.5)
-crate(17.5, 9.5)
 
 # North alley: a raised platform with a step, crates, a barrier.
 both(16, 0, 16, 20, 1.0, 22, STONE)
 both(15.4, 0, 16, 16, 0.45, 18, STONE)
-crate(8.55, 16.55); crate(9.65, 16.55); crate(9.1, 16.55, 1.1)
+crate(8.55, 16.55); crate(8.55, 16.55, dx=1.1); crate(8.55, 16.55, 1.1, dx=0.55)
 both(2, 0, 14.5, 5, 1.0, 15.2, CONCRETE)
 
 # South lane: barriers, a crate stack, a low wall.
@@ -63,6 +62,33 @@ both(10, 0, -18, 10.7, 1.1, -14.5, CONCRETE)
 crate(4.55, -17.95); crate(4.55, -17.95, 1.1)
 both(16, 0, -14.5, 19, 1.0, -14.0, STONE)
 crate(13, -20.5)
+
+# ---- More cover, for the bigger map ----
+# A sandstone house in front of each spawn's middle wall, with sheds north and south of it.
+both(15, 0, -2.5, 18.5, 3.6, 2.5, PLASTER)
+both(14.85, 3.3, -2.65, 18.65, 3.5, 2.65, BEAM)            # its roof's edge
+for z in (9.5, -9.5):
+    both(15.5, 0, z - 1.5, 18, 2.6, z + 1.5, BRICK)
+# Walk-in ruins north and south of the middle: a back wall and two sides, open toward the middle.
+for back, front in ((21, 17.5), (-21, -17.5)):
+    inner = back - 0.5 if back > 0 else back + 0.5
+    box(-3, 0, back, 3, 2.4, inner, STONE)                         # back wall
+    box(-3, 0, back, -2.5, 2.4, front, STONE); box(2.5, 0, back, 3, 2.4, front, STONE)   # sides
+# Low concrete barriers between the middle and the blocks.
+both(8.5, 0, 2.6, 11.5, 1.0, 3.1, CONCRETE)
+both(8.5, 0, -3.1, 11.5, 1.0, -2.6, CONCRETE)
+# Spawn yards: sandbag walls and crates.
+for z in (11, -11):
+    both(23.5, 0, z - 1.5, 24.1, 1.1, z + 1.5, STONE)
+crate(29.5, 14); crate(29.5, -14); crate(24, 0); crate(24, 0, 1.1)
+# Crate stacks and broken walls across the open ground.
+crate(12.5, 13.5); crate(12.5, 13.5, dx=1.1); crate(12.5, 13.5, 1.1, dx=0.55)
+crate(12.5, -13.5); crate(12.5, -13.5, dz=1.1)
+both(6, 0, 19, 6.6, 2.0, 21.5, BRICK)
+both(6, 0, -21.5, 6.6, 1.6, -19, BRICK)
+both(1, 0, -5.1, 3, 1.4, -4.6, STONE)
+both(1, 0, 4.6, 3, 1.4, 5.1, STONE)
+crate(19, 5); crate(19, -5)
 
 spawns = {
     "raiders": [[-28 * S, 0, z * S, math.pi / 2] for z in (-10, -5, 0, 5, 10)],
