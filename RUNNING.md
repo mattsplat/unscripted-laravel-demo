@@ -149,5 +149,7 @@ commit the result.
   can't run them. Over HTTP, `#[Live]` loaders poll every few seconds instead, and what
   `Live::send()` sends (Voxel's other players moving) doesn't arrive.
 - Run `php artisan migrate --force` as a deploy command.
-- Outpost's game server is a separate Rust program, which Cloud doesn't run: the Outpost page
-  loads, but can't reach a server.
+- Outpost's game server is a separate Rust program, which Cloud can't run. Host it on anything
+  that runs containers, from `outpost/server/Dockerfile` built at the repo's root (Coolify:
+  Dockerfile build pack, port 8082, an `https://` domain so its proxy adds TLS). Then set
+  `OUTPOST_SERVER_URL=wss://<its domain>` on Cloud. Unset, pages use `ws://<host>:8082`.

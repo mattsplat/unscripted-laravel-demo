@@ -18,6 +18,12 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    // Outpost's game server: wss://... where it's hosted apart from the app (Coolify, say). Unset,
+    // pages use ws://<this host>:8082 (`npm run outpost:server` beside the app).
+    'outpost' => [
+        'url' => env('OUTPOST_SERVER_URL'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

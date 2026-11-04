@@ -158,7 +158,7 @@
     requestAnimationFrame(count);
 
     await init();
-    game.start('world', new Float32Array(map.boxes.flat()), `ws://${location.hostname}:8082`);
+    game.start('world', new Float32Array(map.boxes.flat()), @json(config('services.outpost.url')) || `ws://${location.hostname}:8082`);
     ready = true;
     if (joining) game.join(joining);
   </script>
