@@ -144,7 +144,10 @@ built games are committed in `public/wasm/`. Rebuild them here after changing th
 commit the result.
 
 - Leave `UNSCRIPTED_RUNTIME` and `UNSCRIPTED_PACK` unset, for the CDN.
-- `UNSCRIPTED_TRANSPORT=reverb` needs Cloud's WebSockets (Reverb) set up, with the `REVERB_*`
-  variables; otherwise set it to `http` (Voxel's live updates need the socket).
+- Keep `UNSCRIPTED_TRANSPORT=http` (the default). The `reverb` transport runs server calls
+  inside the Reverb process, and Cloud's Reverb is a managed one that only relays messages: it
+  can't run them. Over HTTP, `#[Live]` loaders poll every few seconds instead, and what
+  `Live::send()` sends (Voxel's other players moving) doesn't arrive.
+- Run `php artisan migrate --force` as a deploy command.
 - Outpost's game server is a separate Rust program, which Cloud doesn't run: the Outpost page
   loads, but can't reach a server.

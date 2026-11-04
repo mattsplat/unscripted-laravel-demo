@@ -26,10 +26,12 @@ class AppServiceProvider extends ServiceProvider
         // so guests (?User) are allowed; only finished todos can be removed.
         Gate::define('remove-todo', fn (?User $user, int $id) => Todo::find($id)?->done === true);
 
-        // A page's socket goes to Reverb at the host the page came from, so phones and other
-        // machines on the network can play too, whatever this machine's IP is today (Reverb runs
-        // here as well). Artisan, Reverb's own process included, keeps REVERB_HOST.
-        if (! $this->app->runningInConsole()) {
+        // Running Reverb here (REVERB_HOST is this machine), a page's socket goes to it at the host
+        // the page came from, so phones and other machines on the network can play too, whatever
+        // this machine's IP is today. Artisan, Reverb's own process included, keeps REVERB_HOST,
+        // and so does a Reverb elsewhere (Laravel Cloud's).
+        $local = in_array(config('broadcasting.connections.reverb.options.host'), ['127.0.0.1', 'localhost', '0.0.0.0'], true);
+        if ($local && ! $this->app->runningInConsole()) {
             config(['broadcasting.connections.reverb.options.host' => request()->getHost()]);
         }
     }

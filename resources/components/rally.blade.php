@@ -39,7 +39,7 @@ new class extends Component {
                 'ago' => \Illuminate\Support\Carbon::parse($m->created_at)->diffForHumans(short: true),
             ])->all();
         $best = DB::table('rally_matches')
-            ->select('name', DB::raw('sum(won) as wins'), DB::raw('sum(case when won and level = 2 then 1 else 0 end) as hard'), DB::raw('count(*) as played'))
+            ->select('name', DB::raw('sum(case when won then 1 else 0 end) as wins'), DB::raw('sum(case when won and level = 2 then 1 else 0 end) as hard'), DB::raw('count(*) as played'))
             ->groupBy('name')->orderByDesc('hard')->orderByDesc('wins')->limit(5)->get()
             ->map(fn($b) => ['name' => $b->name, 'wins' => (int) $b->wins, 'hard' => (int) $b->hard, 'played' => (int) $b->played])->all();
         return ['recent' => $recent, 'best' => $best];
