@@ -1,0 +1,7 @@
+# outpost/server/Dockerfile's (it builds from the repo's root): send it just what it uses.
+*
+!outpost/src/sim.rs
+!outpost/server/Cargo.toml
+!outpost/server/Cargo.lock
+!outpost/server/src
+!resources/outpost/map.json

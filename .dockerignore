@@ -1,7 +1,17 @@
-# Only outpost/server/Dockerfile builds from here: send it just what it uses.
-*
-!outpost/src/sim.rs
-!outpost/server/Cargo.toml
-!outpost/server/Cargo.lock
-!outpost/server/src
-!resources/outpost/map.json
+# The app's image (Dockerfile): what it doesn't need.
+.git
+.env
+node_modules
+vendor
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+database/*.sqlite
+public/vendor
+outpost/target
+outpost/server/target
+rally/target
+rally3d/target
+voxel/target
+tests
