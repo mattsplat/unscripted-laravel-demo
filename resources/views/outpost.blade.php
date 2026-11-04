@@ -164,6 +164,10 @@
     game.start('world', new Float32Array(map.boxes.flat()), @json(config('services.outpost.url')) || `ws://${location.hostname}:8082`);
     ready = true;
     if (joining) game.join(joining);
+
+    // The guns' models (Quaternius's Ultimate Gun Pack, CC0): boxes stand in until they're here.
+    ['rifle', 'magnum', 'sniper'].forEach((name, gun) =>
+      fetch(`/wasm/outpost/guns/${name}.bin`).then((r) => r.arrayBuffer()).then((b) => game.model(gun, new Float32Array(b))));
   </script>
 
   @unscripted('outpost')

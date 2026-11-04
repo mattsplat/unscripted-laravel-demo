@@ -9,7 +9,7 @@
 //!
 //! The page talks to it through window:
 //! - in: `start(canvasId, boxes, url)` (the map's boxes, flat x0, y0, z0, x1, y1, z1, material...;
-//!   the server's WebSocket), `join(name)`;
+//!   the server's WebSocket), `join(name)`, `model(gun, floats)` (a gun's model: outpost/guns.py);
 //! - out: CustomEvents `outpost-status` ("open" / "closed"), `outpost-welcome` ({id, team}, JSON),
 //!   `outpost-roster` ([{id, name, team, kills, deaths, alive}], JSON), `outpost-hp` [hp, alive, seconds left looking around after spawning],
 //!   `outpost-kill` ({killer, victim, head, gun}, JSON), `outpost-sound` [kind, volume, gun] and
@@ -179,6 +179,30 @@ fn part(v: &mut Vec<f32>, min: V3, max: V3, mat: f32, col: V3, at: &dyn Fn(V3) -
             ]);
         }
     }
+}
+
+thread_local! {
+    /// The guns' models (rifle, magnum, sniper rifle), once the page has handed them over
+    /// (`model`): 10 floats a vertex, in a gun space with the butt at z 0, the muzzle at z 1 and
+    /// the bore at y 0 (outpost/guns.py). Until then, guns are drawn from boxes.
+    static MODELS: RefCell<[Vec<f32>; 3]> = const { RefCell::new([Vec::new(), Vec::new(), Vec::new()]) };
+}
+
+/// Gun `gun`'s model, if it's loaded: its butt (on the bore) at `butt` and its muzzle `length`
+/// further along z, in the space `at` puts in the world. Whether it was drawn.
+fn gun_model(v: &mut Vec<f32>, gun: u8, butt: V3, length: f32, at: &dyn Fn(V3) -> V3) -> bool {
+    MODELS.with(|m| {
+        let m = m.borrow();
+        let Some(data) = m.get(gun as usize).filter(|d| !d.is_empty()) else { return false };
+        for d in data.chunks_exact(10) {
+            let local = [butt[0] + d[0] * length, butt[1] + d[1] * length, butt[2] + d[2] * length];
+            let p = at(local);
+            let n = normalize(sub(at(add(local, [d[3] * 0.01, d[4] * 0.01, d[5] * 0.01])), p));
+            let mat = if d[9] > 0.5 { SHINY } else { FLAT };
+            v.extend_from_slice(&[p[0], p[1], p[2], n[0], n[1], n[2], 0.0, 0.0, 0.0, 0.0, mat, d[6], d[7], d[8]]);
+        }
+        true
+    })
 }
 
 /// A bar from `a` to `b` (in some body's space), `half` wide across and up, put in the world by
@@ -410,7 +434,13 @@ impl Remote {
         }
         part(v, [0.18, 1.3, -0.07], [0.27, 1.42, 0.07], FLAT, kit.vest, &arms); // shoulder pad
 
-        match self.gun {
+        let (butt, length) = match self.gun {
+            PISTOL => ([0.02, 1.345, 0.36], 0.24),
+            SNIPER => ([0.075, 1.26, -0.1], 1.23),
+            _ => ([0.075, 1.265, -0.08], 0.96),
+        };
+        let modeled = gun_model(v, self.gun, butt, length, &arms);
+        if !modeled { match self.gun {
             PISTOL => {
                 let x = 0.02;
                 part(v, [x - 0.02, 1.31, 0.36], [x + 0.02, 1.36, 0.6], SHINY, METAL, &arms); // slide
@@ -448,7 +478,7 @@ impl Remote {
                 limb(v, [x, 1.235, 0.28], [x, 1.12, 0.3], [0.017, 0.035], SHINY, METAL, &arms); // magazine,
                 limb(v, [x, 1.13, 0.298], [x, 1.03, 0.355], [0.017, 0.035], SHINY, METAL, &arms); // curved
             }
-        }
+        } }
         if now < self.flash_until {
             let m = remote_muzzle(self.gun);
             part(v, [m[0] - 0.05, m[1] - 0.05, m[2]], [m[0] + 0.05, m[1] + 0.05, m[2] + 0.12], GLOW, FLASH, &arms);
@@ -1126,6 +1156,7 @@ impl Game {
         let glove = [0.13, 0.12, 0.1];
         match self.me.gun {
             PISTOL => {
+                if !gun_model(v, PISTOL, [0.0, 0.03, -0.085], 0.255, &at) {
                 let shiny: [(V3, V3); 6] = [
                     ([-0.021, 0.0, -0.085], [0.021, 0.045, 0.165]),   // slide
                     ([-0.006, 0.045, -0.07], [0.006, 0.052, 0.155]),  // rib
@@ -1143,6 +1174,7 @@ impl Game {
                 if !mag_out {
                     part(v, [-0.016, -0.15, -0.09], [0.016, -0.135, -0.048], SHINY, METAL, &at);
                 }
+                }
                 // Both hands round the grip, the left cupping the right; arms reaching out.
                 part(v, [-0.034, -0.125, -0.1], [0.034, -0.025, -0.01], FLAT, glove, &at);
                 part(v, [-0.05, -0.13, -0.085], [-0.012, -0.04, 0.02], FLAT, glove, &at);
@@ -1153,6 +1185,7 @@ impl Game {
                 limb(v, [-0.1, -0.18, -0.2], [-0.04, -0.09, -0.04], [0.047, 0.05], FLAT, kit.pouch, &at);
             }
             SNIPER => {
+                if !gun_model(v, SNIPER, [0.0, -0.005, -0.3], 1.25, &at) {
                 let shiny: [(V3, V3, V3); 13] = [
                     ([-0.026, -0.03, -0.06], [0.026, 0.035, 0.2], METAL),     // action
                     ([-0.011, -0.004, 0.2], [0.011, 0.018, 0.93], METAL),     // barrel
@@ -1188,6 +1221,7 @@ impl Game {
                 for x in [-0.015f32, 0.015] {
                     limb(v, [x, -0.045, 0.52], [x, -0.05, 0.3], [0.006, 0.006], SHINY, METAL, &at); // bipod, folded
                 }
+                }
                 // Right hand on the grip, the left under the forend.
                 part(v, [-0.035, -0.105, -0.06], [0.035, -0.025, 0.04], FLAT, glove, &at);
                 limb(v, [0.03, -0.04, 0.03], [-0.015, -0.035, 0.05], [0.012, 0.012], FLAT, glove, &at);
@@ -1198,6 +1232,7 @@ impl Game {
                 limb(v, [-0.075, -0.15, 0.26], [-0.02, -0.08, 0.38], [0.05, 0.053], FLAT, kit.pouch, &at);
             }
             _ => {
+                if !gun_model(v, RIFLE, [0.0, -0.01, -0.2], 0.89, &at) {
                 let shiny: [(V3, V3, V3); 9] = [
                     ([-0.025, -0.03, -0.05], [0.025, 0.035, 0.25], METAL),     // receiver
                     ([0.025, 0.0, 0.04], [0.028, 0.025, 0.14], LENS),          // ejection port
@@ -1224,6 +1259,7 @@ impl Game {
                 if !mag_out {
                     limb(v, [0.0, -0.025, 0.16], [0.0, -0.12, 0.175], [0.018, 0.035], SHINY, METAL, &at);
                     limb(v, [0.0, -0.115, 0.173], [0.0, -0.19, 0.215], [0.018, 0.035], SHINY, METAL, &at);
+                }
                 }
 
                 // Hands: gloved, the right on the grip, the left round the handguard; sleeves and cuffs.
@@ -1736,6 +1772,17 @@ pub fn start(canvas_id: &str, boxes: Vec<f32>, url: &str) -> Result<(), JsValue>
     }));
     window.request_animation_frame(first.borrow().as_ref().unwrap().as_ref().unchecked_ref())?;
     Ok(())
+}
+
+/// Gun `gun`'s model (0 rifle, 1 magnum, 2 sniper rifle): 10 floats a vertex, from
+/// public/wasm/outpost/guns/ (outpost/guns.py).
+#[wasm_bindgen]
+pub fn model(gun: u8, data: Vec<f32>) {
+    MODELS.with(|m| {
+        if let Some(slot) = m.borrow_mut().get_mut(gun as usize) {
+            *slot = data;
+        }
+    });
 }
 
 /// Joins the game as `name`: now if the socket's open, else once it is.
