@@ -9,11 +9,12 @@
 //!
 //! The page talks to it through window:
 //! - in: `start(canvasId, boxes, url)` (the map's boxes, flat x0, y0, z0, x1, y1, z1, material...;
-//!   the server's WebSocket), `join(name)`, `model(gun, floats)` (a gun's model: outpost/guns.py);
+//!   the server's WebSocket), `join(name)`, `model(gun, floats)` (a gun's model: outpost/guns.py), `level(n)` (the bots'), `sync()` (tell the page again what it may have missed);
 //! - out: CustomEvents `outpost-status` ("open" / "closed"), `outpost-welcome` ({id, team}, JSON),
 //!   `outpost-roster` ([{id, name, team, kills, deaths, alive}], JSON), `outpost-hp` [hp, alive, seconds left looking around after spawning],
 //!   `outpost-kill` ({killer, victim, head, gun}, JSON), `outpost-sound` [kind, volume, gun] and
-//!   `outpost-scores` [1/0].
+//!   `outpost-scores` [1/0], `outpost-level` [0 easy / 1 normal / 2 hard] and `outpost-paused`
+//!   [1/0] (the mouse let go).
 //!
 //! Controls: click to play (pointer lock), WASD to move, shift to crouch, space to jump, mouse to
 //! shoot, right button to scope (the sniper rifle), 1 / 2 / 3, Q or the wheel to change guns,
@@ -581,6 +582,10 @@ struct Game {
     seed: u32,
     /// The health, life and look-around seconds the page was last told.
     told: (i32, bool, u32),
+    /// Whether the page was last told the game's paused (the mouse let go).
+    told_paused: bool,
+    /// The bots' level, as the server last said.
+    level: Option<u8>,
 
     now: f64,
     /// CustomEvents to dispatch once the game isn't borrowed (a listener may call back in).
@@ -777,6 +782,10 @@ impl Game {
                 self.id = Some(id);
                 self.tell("outpost-welcome", format!(r#"{{"id":{id},"team":{team}}}"#));
             }
+            ToClient::Level { level } => {
+                self.level = Some(level);
+                self.outbox.push(("outpost-level", numbers(&[level as f64])));
+            }
             ToClient::Roster { players } => {
                 let json = serde_json::to_string(&players).unwrap_or_default();
                 self.tell("outpost-roster", json);
@@ -963,6 +972,11 @@ impl Game {
     fn frame(&mut self, now: f64) {
         let dt = (((now - self.now) / 1000.0) as f32).clamp(0.0, 0.25);
         self.now = now;
+        let paused = !self.locked();
+        if paused != self.told_paused {
+            self.told_paused = paused;
+            self.outbox.push(("outpost-paused", numbers(&[paused as u8 as f64])));
+        }
         if !self.locked() {
             self.keys.clear();
             self.trigger = false;
@@ -1635,6 +1649,8 @@ pub fn start(canvas_id: &str, boxes: Vec<f32>, url: &str) -> Result<(), JsValue>
         spawned_at: 0.0,
         seed: (now as u32) | 1,
         told: (0, false, 0),
+        told_paused: true,
+        level: None,
         now,
         outbox: Vec::new(),
     };
@@ -1783,6 +1799,28 @@ pub fn model(gun: u8, data: Vec<f32>) {
             *slot = data;
         }
     });
+}
+
+/// Tells the page again what it may have missed before it was listening: whether the game's
+/// connected, the bots' level, and whether it's paused.
+#[wasm_bindgen]
+pub fn sync() {
+    with_game(|g| {
+        if g.open {
+            g.tell("outpost-status", "\"open\"".into());
+        }
+        if let Some(level) = g.level {
+            g.outbox.push(("outpost-level", numbers(&[level as f64])));
+        }
+        g.outbox.push(("outpost-paused", numbers(&[g.told_paused as u8 as f64])));
+    });
+}
+
+/// Sets the bots' level for the whole match: 0 easy, 1 normal, 2 hard. Everyone's told
+/// (`outpost-level`), this page included.
+#[wasm_bindgen]
+pub fn level(level: u8) {
+    with_game(|g| g.send(&ToServer::Level { level }));
 }
 
 /// Joins the game as `name`: now if the socket's open, else once it is.

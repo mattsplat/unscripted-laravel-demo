@@ -9,29 +9,51 @@
 //!   takes a moment to react, its aim starts off and settles, and it fires as a person would:
 //!   the rifle in bursts standing still, the magnum a click at a time, the sniper rifle scoped.
 //! - Kept beatable: slow to react, their aim never quite still, seldom with the sniper rifle,
-//!   blind past `SIGHT` metres, and their shots do `DAMAGE` of a gun's damage to people.
+//!   blind past a distance, and their shots do less damage to people: how much of each, by
+//!   the match's level, is `SKILLS`.
 //!   `cargo test --release -- --ignored --nocapture` measures how deadly they are.
 
 use crate::sim::*;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
-/// Ticks from first seeing someone to first shooting at them (1.1 s).
-const REACT: u32 = 66;
+/// How good the bots are: one of `SKILLS`, chosen for the whole match (Easy, Normal, Hard).
+#[derive(Clone, Copy, Debug)]
+pub struct Skill {
+    /// The share of a gun's damage their shots do to people (to each other, all of it).
+    pub damage: f32,
+    /// Ticks from first seeing someone to first shooting at them.
+    pub react: u32,
+    /// How far off their aim starts on someone new (radians, across and up), and how much of
+    /// that's left each tick.
+    pub aim: [f32; 2],
+    pub settle: f32,
+    /// The most their aim wobbles each tick (radians), however long they've been aiming.
+    pub wobble: f32,
+    /// How often they go for the head.
+    pub head: f32,
+    /// How far off they notice people, unless shot at (metres); how far to either side
+    /// (the cosine of the angle from straight ahead).
+    pub sight: f32,
+    pub fov_cos: f32,
+    /// The most they turn in a tick (radians).
+    pub turn: f32,
+    /// How often one comes back in with the sniper rifle.
+    pub sniper: f32,
+}
+
+pub const SKILLS: [Skill; 3] = [
+    // Easy: slow, shaky, short-sighted, and they hit softly.
+    Skill { damage: 0.2, react: 90, aim: [0.8, 0.4], settle: 0.97, wobble: 0.03, head: 0.05, sight: 30.0, fov_cos: 0.8, turn: 0.06, sniper: 0.0 },
+    // Normal.
+    Skill { damage: 0.35, react: 66, aim: [0.6, 0.3], settle: 0.96, wobble: 0.018, head: 0.1, sight: 45.0, fov_cos: 0.71, turn: 0.08, sniper: 0.05 },
+    // Hard: quick and steady, but still not what they were.
+    Skill { damage: 0.75, react: 30, aim: [0.3, 0.15], settle: 0.94, wobble: 0.006, head: 0.25, sight: 80.0, fov_cos: 0.5, turn: 0.11, sniper: 0.15 },
+];
+
 /// How far off a bot's aim may be when it fires, against the size of what it's aiming at:
 /// more than 1 and it fires when roughly on, so some shots miss.
 const SLOPPY: f32 = 2.0;
-/// The most a bot's aim wobbles each tick (radians), however long it's been aiming.
-const WOBBLE: f32 = 0.018;
-/// The share of a gun's damage a bot's shots do: they're there to make a game, not to win it.
-pub const DAMAGE: f32 = 0.35;
-/// How far off a bot notices people, unless they've shot at it (metres).
-const SIGHT: f32 = 45.0;
-/// How far to either side a bot notices people (from straight ahead), unless it's already on
-/// to them.
-const FOV_COS: f32 = 0.71; // about 45 degrees
-/// The most a bot turns in a tick (radians): about 4.8 a second.
-const TURN: f32 = 0.08;
 
 /// Where people fit on the ground: cells of `CELL` metres.
 pub struct Nav {
@@ -193,6 +215,8 @@ pub struct Other {
 
 pub struct Brain {
     rng: u32,
+    /// The match's level, as of this tick.
+    skill: Skill,
     /// Where it's going, and the way there.
     goal: Option<V3>,
     path: Vec<V3>,
@@ -267,6 +291,7 @@ impl Brain {
     pub fn new(seed: u32) -> Brain {
         Brain {
             rng: seed.wrapping_mul(2_654_435_761) | 1,
+            skill: SKILLS[1],
             goal: None,
             path: Vec::new(),
             target: None,
@@ -294,7 +319,8 @@ impl Brain {
     }
 
     /// This tick's input (all but its number) for player `id`, `me`, among everyone.
-    pub fn think(&mut self, id: u32, me: &Player, everyone: &[Other], map: &Map, nav: &Nav, tick: u32) -> Input {
+    pub fn think(&mut self, id: u32, me: &Player, everyone: &[Other], map: &Map, nav: &Nav, tick: u32, skill: Skill) -> Input {
+        self.skill = skill;
         let others = everyone.iter().filter(|o| o.id != id);
         if !me.alive {
             self.alive = false;
@@ -311,7 +337,7 @@ impl Brain {
             self.last_seen = None;
             self.shot_from = None;
             let r = self.random();
-            self.gun = if r < 0.7 { RIFLE } else if r < 0.75 { SNIPER } else { PISTOL };
+            self.gun = if r < self.skill.sniper { SNIPER } else if r < 0.7 + self.skill.sniper { RIFLE } else { PISTOL };
         }
         let eye = me.eye();
         let mut keys = 0;
@@ -326,8 +352,8 @@ impl Brain {
                 let d = sub(chest, eye);
                 let dist = dot(d, d).sqrt();
                 let flat = normalize([d[0], 0.0, d[2]]);
-                let noticed = Some(o.id) == self.target || self.shot_from.is_some() || dot(flat, ahead) > FOV_COS;
-                (noticed && dist < RANGE && (dist < SIGHT || self.shot_from.is_some() || Some(o.id) == self.target) && map.ray(eye, mul(d, 1.0 / dist)).0 >= dist - 0.05).then_some((o, dist))
+                let noticed = Some(o.id) == self.target || self.shot_from.is_some() || dot(flat, ahead) > self.skill.fov_cos;
+                (noticed && dist < RANGE && (dist < self.skill.sight || self.shot_from.is_some() || Some(o.id) == self.target) && map.ray(eye, mul(d, 1.0 / dist)).0 >= dist - 0.05).then_some((o, dist))
             })
             .min_by(|a, b| a.1.total_cmp(&b.1));
 
@@ -336,8 +362,8 @@ impl Brain {
                 // Someone new: a moment to react, and the aim starts off.
                 self.target = Some(o.id);
                 self.seen_at = tick;
-                self.head = self.random() < 0.1;
-                self.error = [(self.random() - 0.5) * 0.6, (self.random() - 0.5) * 0.3];
+                self.head = self.random() < self.skill.head;
+                self.error = [(self.random() - 0.5) * self.skill.aim[0], (self.random() - 0.5) * self.skill.aim[1]];
                 self.crouching = self.gun != PISTOL && dist > 12.0 && self.random() < 0.4;
             }
             self.last_seen = Some(o.pos);
@@ -347,13 +373,14 @@ impl Brain {
 
             let height = if self.head { 1.62 } else { 1.2 } - o.crouch * CROUCH_DROP;
             let (want_yaw, want_pitch) = angles(eye, add(o.pos, [0.0, height, 0.0]));
-            let wobble = [(self.random() - 0.5) * 2.0 * WOBBLE, (self.random() - 0.5) * WOBBLE];
-            self.error = [self.error[0] * 0.96 + wobble[0], self.error[1] * 0.96 + wobble[1]];
+            let (w, k) = (self.skill.wobble, self.skill.settle);
+            let wobble = [(self.random() - 0.5) * 2.0 * w, (self.random() - 0.5) * w];
+            self.error = [self.error[0] * k + wobble[0], self.error[1] * k + wobble[1]];
             self.look(want_yaw + self.error[0], want_pitch + self.error[1]);
             // How far off the aim is, against how big the target looks from here.
             let off = turn(self.yaw, want_yaw).abs() + (want_pitch - self.pitch).abs();
             let size = (if self.head { 0.11 } else { 0.2 }) / dist;
-            let ready = tick - self.seen_at >= REACT && off < size * SLOPPY;
+            let ready = tick - self.seen_at >= self.skill.react && off < size * SLOPPY;
 
             let mut firing = false;
             match self.gun {
@@ -473,7 +500,8 @@ impl Brain {
     /// Turns toward a yaw and pitch, no faster than a person could.
     fn look(&mut self, yaw: f32, pitch: f32) {
         let dy = turn(self.yaw, yaw);
-        self.yaw += (dy * 0.35).clamp(-TURN, TURN);
-        self.pitch += ((pitch - self.pitch) * 0.35).clamp(-TURN, TURN);
+        let turn = self.skill.turn;
+        self.yaw += (dy * 0.35).clamp(-turn, turn);
+        self.pitch += ((pitch - self.pitch) * 0.35).clamp(-turn, turn);
     }
 }

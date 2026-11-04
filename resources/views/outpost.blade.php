@@ -64,6 +64,13 @@
 
     .join { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(12,14,16,.82); padding: 28px 34px; border-radius: 4px; min-width: 300px; border-top: 3px solid #e8b04a; }
     .join h1 { margin: 0 0 4px; font-size: 34px; letter-spacing: .3em; }
+    .paused { position: fixed; left: 50%; top: 40%; transform: translateX(-50%); background: rgba(12,14,16,.82); padding: 16px 24px; border-radius: 4px; text-align: center; }
+    .paused p { margin: 0 0 12px; font-size: 18px; letter-spacing: .06em; text-transform: uppercase; }
+    .bots { display: flex; align-items: center; gap: 6px; margin-top: 16px; flex-wrap: wrap; justify-content: center; }
+    .bots span { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #aaa; margin-right: 4px; }
+    .join .bots button, .bots button { font: inherit; font-size: 14px; letter-spacing: normal; text-transform: none; padding: 6px 12px; background: #1d2126; color: #ccc; border: 1px solid #3a3f46; border-radius: 3px; cursor: pointer; }
+    .join .bots button.picked, .bots button.picked { background: #e8b04a; color: #111; border-color: #e8b04a; }
+    .bots small { flex-basis: 100%; text-align: center; color: #888; font-size: 12px; }
     .join p { margin: 0 0 16px; color: #aaa; font-size: 14px; }
     .join form { display: flex; gap: 8px; }
     .join input { flex: 1; font: inherit; font-size: 16px; padding: 8px 10px; background: #1c2024; color: #fff; border: 1px solid #3a4046; border-radius: 2px; }
@@ -94,7 +101,7 @@
     import init, * as game from '/wasm/outpost/outpost.js';
     const map = @json(json_decode(file_get_contents(resource_path('outpost/map.json')), true));
     let ready = false, joining = null;
-    window.outpost = { join: (name) => ready ? game.join(name) : (joining = name) };
+    window.outpost = { join: (name) => ready ? game.join(name) : (joining = name), level: (n) => ready && game.level(n), sync: () => ready && game.sync() };
 
     // Sounds, made up as needed: a crack and a thump for shots (bigger for bigger guns), clicks
     // for the rest.

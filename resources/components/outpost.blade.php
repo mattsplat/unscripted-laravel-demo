@@ -13,6 +13,8 @@ new class extends Component {
     const TEAMS = [['raiders', 'Raiders'], ['guards', 'Guards']];
     /** By gun number: its kill-feed icon. */
     const GUNS = ['rifle', 'pistol', 'sniper'];
+    /** The bots' levels, for the whole match: anyone can change it, and everyone sees. */
+    const LEVELS = ['Easy', 'Normal', 'Hard'];
 
     #[State] public string $name = '';
     public ?string $error = null;
@@ -24,6 +26,10 @@ new class extends Component {
     public bool $alive = true;
     /** Seconds left to look around after spawning: unseen, unhittable, and not moving or shooting. */
     public int $shield = 0;
+    /** The bots' level (an index into LEVELS), from the game server. */
+    public int $level = 1;
+    /** Whether the game's paused (the mouse let go, with Esc): the time to change things. */
+    public bool $paused = true;
     /** Everyone in, by id: name, team, kills, deaths, alive. */
     public array $players = [];
     /** Recent kills, newest last: killer, victim (name and team each), the gun, whether a headshot, when. */
@@ -34,6 +40,8 @@ new class extends Component {
 
     protected function mounted(): void
     {
+        // The game may have said things (connected, the bots' level) before this was listening.
+        U::window()->outpost->sync();
         // Kills leave the feed after 6 seconds; the hurt flash goes.
         U::setInterval(function () {
             $this->feed = array_values(array_filter($this->feed, fn($k) => self::now() - $k['at'] < 6000));
@@ -50,6 +58,23 @@ new class extends Component {
         }
         $this->error = null;
         U::window()->outpost->join($name);
+    }
+
+    public function bots(int $level): void
+    {
+        U::window()->outpost->level($level);
+    }
+
+    #[On('outpost-level')]
+    public function levelChanged(array $level): void
+    {
+        $this->level = (int) $level[0];
+    }
+
+    #[On('outpost-paused')]
+    public function pausedChanged(array $paused): void
+    {
+        $this->paused = (bool) $paused[0];
     }
 
     #[On('outpost-status')]
@@ -159,6 +184,7 @@ new class extends Component {
             <button>Deploy</button>
         </form>
         @if ($error) <p class="error">{{ $error }}</p> @endif
+        @include('outpost-bots', ['levels' => self::LEVELS])
     </div>
 @else
     @php([$class, $label] = self::TEAMS[$me['team']])
@@ -170,6 +196,12 @@ new class extends Component {
         <div class="dead">You were killed. Back in a moment…</div>
     @elseif ($shield > 0)
         <div class="looking" u-key="look-{{ $shield }}">Look around · <b>{{ $shield }}</b><small>Unseen. You can't move or shoot yet.</small></div>
+    @endif
+    @if ($paused)
+        <div class="paused">
+            <p>Paused · click to play</p>
+            @include('outpost-bots', ['levels' => self::LEVELS])
+        </div>
     @endif
     @if (self::now() - $hurtAt < 600)
         <div class="hurt" u-key="{{ $hurtAt }}"></div>

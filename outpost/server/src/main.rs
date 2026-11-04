@@ -85,6 +85,8 @@ struct Server {
     nav: bots::Nav,
     team_size: usize,
     next_bot: u32,
+    /// The bots' level, for the whole match: an index into `bots::SKILLS`. Anyone can change it.
+    level: u8,
 }
 
 impl Server {
@@ -94,6 +96,7 @@ impl Server {
             nav,
             team_size,
             next_bot: FIRST_BOT,
+            level: 1,
             map,
             spawns,
             clients: HashMap::new(),
@@ -182,7 +185,16 @@ impl Server {
     fn receive(&mut self, id: u32, message: From) {
         match message {
             From::Open(out) => {
+                send(&out, &ToClient::Level { level: self.level });
                 self.clients.insert(id, Client { out, playing: None, brain: None });
+            }
+            From::Message(ToServer::Level { level }) => {
+                if (level as usize) < bots::SKILLS.len() && level != self.level {
+                    self.level = level;
+                    for client in self.clients.values().filter(|c| c.brain.is_none()) {
+                        send(&client.out, &ToClient::Level { level });
+                    }
+                }
             }
             From::Closed => {
                 if self.clients.remove(&id).is_some_and(|c| c.playing.is_some()) {
@@ -290,10 +302,11 @@ impl Server {
             .filter_map(|(&id, c)| c.playing.as_ref().map(|p| (id, p)))
             .map(|(id, p)| bots::Other { id, pos: p.state.pos, crouch: p.state.crouch, team: p.state.team, alive: p.state.exposed() })
             .collect();
+        let skill = bots::SKILLS[self.level as usize];
         let Server { clients, map, nav, tick, .. } = self;
         for (&id, client) in clients.iter_mut() {
             let (Some(brain), Some(p)) = (client.brain.as_mut(), client.playing.as_mut()) else { continue };
-            let mut input = brain.think(id, &p.state, &others, map, nav, *tick);
+            let mut input = brain.think(id, &p.state, &others, map, nav, *tick, skill);
             p.queued += 1;
             input.seq = p.queued;
             p.queue.push_back(input);
@@ -344,7 +357,8 @@ impl Server {
         let from = self.playing(by).map(|p| p.state.pos);
         // Bots hit people softer (each other at full strength, so their fights still end).
         let bot = |id: u32| self.clients.get(&id).is_some_and(|c| c.brain.is_some());
-        let amount = if bot(by) && !bot(victim) { (amount as f32 * bots::DAMAGE).ceil() as i32 } else { amount };
+        let share = bots::SKILLS[self.level as usize].damage;
+        let amount = if bot(by) && !bot(victim) { (amount as f32 * share).ceil() as i32 } else { amount };
         if let Some(brain) = self.clients.get_mut(&victim).and_then(|c| c.brain.as_mut()) {
             brain.shot_from = from;
         }
@@ -483,6 +497,10 @@ async fn main() {
     });
 
     let mut server = Server::new(map, spawns, team_size);
+    // OUTPOST_BOT_LEVEL: the bots' level to start at (0 easy, 1 normal, 2 hard); players change it.
+    if let Some(level) = std::env::var("OUTPOST_BOT_LEVEL").ok().and_then(|n| n.parse::<u8>().ok()).filter(|&n| n < 3) {
+        server.level = level;
+    }
     let mut clock = tokio::time::interval(Duration::from_micros(1_000_000 / TICK_RATE as u64));
     loop {
         clock.tick().await;
@@ -806,9 +824,11 @@ mod tests {
     #[test]
     #[ignore]
     fn how_deadly_the_bots_are() {
+        for level in 0..3u8 {
         let (mut deaths, mut kills) = (0, 0);
         for seed in 0..4 {
             let mut s = with_bots(2);
+            s.level = level;
             for _ in 0..seed * 37 {
                 s.step();
             }
@@ -829,7 +849,32 @@ mod tests {
             deaths += s.clients[&1].playing.as_ref().unwrap().deaths;
             kills += s.clients.values().filter_map(|c| c.playing.as_ref()).map(|p| p.kills).sum::<u32>();
         }
-        println!("a player standing in the middle died {:.1} times a minute; {:.1} kills a minute in all", deaths as f32 / 12.0, kills as f32 / 12.0);
+        println!("level {level}: a player standing in the middle died {:.1} times a minute; {:.1} kills a minute in all", deaths as f32 / 12.0, kills as f32 / 12.0);
+        }
+    }
+
+    #[test]
+    fn anyone_can_change_the_bots_level_and_everyone_hears() {
+        let mut s = server();
+        let (out1, mut in1) = unbounded_channel();
+        let (out2, mut in2) = unbounded_channel();
+        s.receive(1, From::Open(out1));
+        s.receive(2, From::Open(out2));
+        let level = |rx: &mut tokio::sync::mpsc::UnboundedReceiver<_>| {
+            let mut last = None;
+            while let Ok(m) = rx.try_recv() {
+                if let Ok(ToClient::Level { level }) = serde_json::from_str::<ToClient>(&String::from(m)) {
+                    last = Some(level);
+                }
+            }
+            last
+        };
+        assert_eq!((level(&mut in1), level(&mut in2)), (Some(1), Some(1)), "told on connecting");
+        s.receive(2, From::Message(ToServer::Level { level: 0 }));
+        assert_eq!(s.level, 0);
+        assert_eq!((level(&mut in1), level(&mut in2)), (Some(0), Some(0)), "everyone told");
+        s.receive(1, From::Message(ToServer::Level { level: 9 }));
+        assert_eq!(s.level, 0, "no such level");
     }
 
     #[test]

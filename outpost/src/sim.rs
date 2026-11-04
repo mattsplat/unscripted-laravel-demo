@@ -675,6 +675,8 @@ pub enum ToServer {
     /// The ticks played since the last message, and the server tick the page was showing
     /// everyone else at (for lag compensation).
     Input { view: f32, inputs: Vec<Input> },
+    /// The bots' level for the whole match: 0 easy, 1 normal, 2 hard.
+    Level { level: u8 },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -684,6 +686,9 @@ pub enum ToClient {
     /// Where everyone is at `tick`. `you` is your own state after your input `ack`.
     Snapshot { tick: u32, ack: u32, you: Option<Player>, players: Vec<Seen>, events: Vec<Event> },
     Roster { players: Vec<Entry> },
+    /// The bots' level for the whole match (0 easy, 1 normal, 2 hard): on connecting, and
+    /// whenever anyone changes it.
+    Level { level: u8 },
 }
 
 /// Someone else, as everyone sees them.
