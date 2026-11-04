@@ -22,6 +22,8 @@ new class extends Component {
     public ?array $me = null;
     public int $hp = 100;
     public bool $alive = true;
+    /** Seconds left to look around after spawning: unseen, unhittable, and not moving or shooting. */
+    public int $shield = 0;
     /** Everyone in, by id: name, team, kills, deaths, alive. */
     public array $players = [];
     /** Recent kills, newest last: killer, victim (name and team each), the gun, whether a headshot, when. */
@@ -72,11 +74,11 @@ new class extends Component {
     #[On('outpost-hp')]
     public function health(array $health): void
     {
-        [$hp, $alive] = $health;
+        [$hp, $alive, $shield] = $health + [2 => 0];
         if ($hp < $this->hp) {
             $this->hurtAt = self::now();
         }
-        [$this->hp, $this->alive] = [(int) $hp, (bool) $alive];
+        [$this->hp, $this->alive, $this->shield] = [(int) $hp, (bool) $alive, (int) $shield];
     }
 
     #[On('outpost-kill')]
@@ -166,6 +168,8 @@ new class extends Component {
     </div>
     @if (!$alive)
         <div class="dead">You were killed. Back in a moment…</div>
+    @elseif ($shield > 0)
+        <div class="looking" u-key="look-{{ $shield }}">Look around · <b>{{ $shield }}</b><small>Unseen. You can't move or shoot yet.</small></div>
     @endif
     @if (self::now() - $hurtAt < 600)
         <div class="hurt" u-key="{{ $hurtAt }}"></div>

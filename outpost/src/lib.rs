@@ -11,7 +11,7 @@
 //! - in: `start(canvasId, boxes, url)` (the map's boxes, flat x0, y0, z0, x1, y1, z1, material...;
 //!   the server's WebSocket), `join(name)`;
 //! - out: CustomEvents `outpost-status` ("open" / "closed"), `outpost-welcome` ({id, team}, JSON),
-//!   `outpost-roster` ([{id, name, team, kills, deaths, alive}], JSON), `outpost-hp` [hp, alive],
+//!   `outpost-roster` ([{id, name, team, kills, deaths, alive}], JSON), `outpost-hp` [hp, alive, seconds left looking around after spawning],
 //!   `outpost-kill` ({killer, victim, head, gun}, JSON), `outpost-sound` [kind, volume, gun] and
 //!   `outpost-scores` [1/0].
 //!
@@ -549,8 +549,8 @@ struct Game {
     hit_at: f64,
     spawned_at: f64,
     seed: u32,
-    /// The health and life the page was last told.
-    told: (i32, bool),
+    /// The health, life and look-around seconds the page was last told.
+    told: (i32, bool, u32),
 
     now: f64,
     /// CustomEvents to dispatch once the game isn't borrowed (a listener may call back in).
@@ -782,9 +782,10 @@ impl Game {
                 self.yaw = self.me.yaw;
                 self.pitch = 0.0;
             }
-            if (self.me.hp, self.me.alive) != self.told {
-                self.told = (self.me.hp, self.me.alive);
-                self.outbox.push(("outpost-hp", numbers(&[self.me.hp as f64, self.me.alive as u8 as f64])));
+            let shield = self.me.shield.div_ceil(60);
+            if (self.me.hp, self.me.alive, shield) != self.told {
+                self.told = (self.me.hp, self.me.alive, shield);
+                self.outbox.push(("outpost-hp", numbers(&[self.me.hp as f64, self.me.alive as u8 as f64, shield as f64])));
             }
         }
 
@@ -1597,7 +1598,7 @@ pub fn start(canvas_id: &str, boxes: Vec<f32>, url: &str) -> Result<(), JsValue>
         hit_at: f64::MIN,
         spawned_at: 0.0,
         seed: (now as u32) | 1,
-        told: (0, false),
+        told: (0, false, 0),
         now,
         outbox: Vec::new(),
     };

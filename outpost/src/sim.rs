@@ -345,7 +345,14 @@ pub struct Player {
     pub alive: bool,
     pub hp: i32,
     pub team: u8,
+    /// Ticks left of the look-around just after spawning: you can look, but not move or shoot,
+    /// and no one can see or hit you (the server's part), so a camper can't catch you there.
+    #[serde(default)]
+    pub shield: u32,
 }
+
+/// How long the look-around after spawning lasts: 3 s.
+pub const SHIELD_TICKS: u32 = 180;
 
 impl Player {
     pub fn new(seed: u32, team: u8) -> Player {
@@ -373,13 +380,21 @@ impl Player {
             alive: false,
             hp: 0,
             team,
+            shield: 0,
         }
     }
 
-    /// In at `at`, facing `yaw`: alive, full health, full ammo, the same gun out.
+    /// Alive and out in the open: seen, solid, and fair game (not still looking around after
+    /// spawning).
+    pub fn exposed(&self) -> bool {
+        self.alive && self.shield == 0
+    }
+
+    /// In at `at`, facing `yaw`: alive, full health, full ammo, the same gun out, and a few
+    /// seconds to look around first (`shield`).
     pub fn spawn(&mut self, at: V3, yaw: f32) {
         let gun = self.gun;
-        *self = Player { pos: at, yaw, alive: true, hp: 100, shots: self.shots, gun, ..Player::new(self.seed, self.team) };
+        *self = Player { pos: at, yaw, alive: true, hp: 100, shots: self.shots, gun, shield: SHIELD_TICKS, ..Player::new(self.seed, self.team) };
     }
 
     pub fn gun(&self) -> &'static Gun {
@@ -421,6 +436,14 @@ impl Player {
         }
         self.yaw = input.yaw;
         self.pitch = input.pitch.clamp(-1.5, 1.5);
+
+        // Just spawned: looking around only. (A trigger held as it ends isn't a click.)
+        if self.shield > 0 {
+            self.shield -= 1;
+            self.trigger = input.keys & keys::FIRE != 0;
+            self.walk(0, map, others);
+            return None;
+        }
 
         // Down when crouch is held; up when it isn't, if there's room overhead.
         let down = input.keys & keys::CROUCH != 0 || (self.crouch > 0.0 && map.walls(self.pos, HEIGHT));

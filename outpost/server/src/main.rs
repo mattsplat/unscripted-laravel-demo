@@ -165,13 +165,13 @@ impl Server {
         ids
     }
 
-    /// Where everyone but `id` who's alive is standing.
+    /// Where everyone but `id` who's out (alive, done looking around) is standing.
     fn others(&self, id: u32) -> Vec<V3> {
         self.clients
             .iter()
             .filter(|&(&other, _)| other != id)
             .filter_map(|(_, c)| c.playing.as_ref())
-            .filter(|p| p.state.alive)
+            .filter(|p| p.state.exposed())
             .map(|p| p.state.pos)
             .collect()
     }
@@ -258,7 +258,7 @@ impl Server {
         let now: HashMap<u32, Pose> = self
             .clients
             .iter()
-            .filter_map(|(&id, c)| c.playing.as_ref().map(|p| (id, (p.state.pos, p.state.alive, p.state.crouch))))
+            .filter_map(|(&id, c)| c.playing.as_ref().map(|p| (id, (p.state.pos, p.state.exposed(), p.state.crouch))))
             .collect();
         self.history.push_back((self.tick, now));
         if self.history.len() > HISTORY {
@@ -280,7 +280,7 @@ impl Server {
             .clients
             .iter()
             .filter_map(|(&id, c)| c.playing.as_ref().map(|p| (id, p)))
-            .map(|(id, p)| bots::Other { id, pos: p.state.pos, crouch: p.state.crouch, team: p.state.team, alive: p.state.alive })
+            .map(|(id, p)| bots::Other { id, pos: p.state.pos, crouch: p.state.crouch, team: p.state.team, alive: p.state.exposed() })
             .collect();
         let Server { clients, map, nav, tick, .. } = self;
         for (&id, client) in clients.iter_mut() {
@@ -318,8 +318,8 @@ impl Server {
         let mut targets: Vec<(u32, (V3, f32))> = Vec::new();
         for (&other, &(at, was_alive, crouch)) in &seen {
             let Some(p) = self.clients.get(&other).and_then(|c| c.playing.as_ref()) else { continue };
-            // Not yourself, not your own side, and not someone who's died since.
-            if other != id && was_alive && p.state.alive && p.state.team != team {
+            // Not yourself, not your own side, and not someone who's died (or respawned) since.
+            if other != id && was_alive && p.state.exposed() && p.state.team != team {
                 targets.push((other, (at, crouch)));
             }
         }
@@ -360,6 +360,8 @@ impl Server {
             .clients
             .iter()
             .filter_map(|(&id, c)| c.playing.as_ref().map(|p| (id, p)))
+            // Someone still looking around after spawning isn't there, as far as anyone else knows.
+            .filter(|(_, p)| p.state.shield == 0)
             .map(|(id, p)| {
                 let s = &p.state;
                 Seen { id, pos: s.pos, yaw: s.yaw, pitch: s.pitch, team: s.team, alive: s.alive, crouch: s.crouch, gun: s.gun }
@@ -497,6 +499,7 @@ mod tests {
         let p = s.playing(id).unwrap();
         p.state.pos = [x, 0.0, z];
         p.state.yaw = std::f32::consts::FRAC_PI_2;
+        p.state.shield = 0; // out already: these tests are about standing players
     }
 
     fn fire_along_x(s: &mut Server, id: u32, view: f32) {
@@ -535,6 +538,47 @@ mod tests {
         let now = s.tick as f32;
         fire_along_x(&mut s, 1, now);
         assert_eq!(hp(&mut s, 2), 100);
+    }
+
+    #[test]
+    fn just_spawned_players_look_around_unseen_unhurt_and_still() {
+        let mut s = server();
+        join(&mut s, 1, -9.0, 2.0);
+        join(&mut s, 2, -4.0, 2.0);
+        // 2 comes back in right where 1 is aiming: looking around, so out of reach.
+        s.playing(2).unwrap().state.spawn([-4.0, 0.0, 2.0], 0.0);
+        s.step();
+        let now = s.tick as f32;
+        fire_along_x(&mut s, 1, now);
+        assert_eq!(hp(&mut s, 2), 100, "can't be hit");
+        assert!(s.others(1).is_empty(), "isn't in anyone's way");
+        let seen = s.rewound(s.tick as f32);
+        assert!(!seen[&2].1, "isn't a target in the history shots are checked against");
+
+        // Meanwhile it can look, but not walk or shoot.
+        let mut me = Player::new(7, 0);
+        me.spawn([-4.0, 0.0, 2.0], 0.0);
+        let held = Input { keys: keys::FORWARD | keys::FIRE, yaw: 1.0, pitch: 0.2, ..Default::default() };
+        for _ in 0..SHIELD_TICKS - 1 {
+            assert!(me.step(&held, &s.map, &[]).is_none(), "no shots while looking around");
+        }
+        assert_eq!((me.pos[0], me.pos[2]), (-4.0, 2.0), "didn't move");
+        assert_eq!((me.yaw, me.pitch), (1.0, 0.2), "did look");
+        me.step(&held, &s.map, &[]);
+        assert_eq!(me.shield, 0);
+        // Out: walking works, and a trigger held since the look-around isn't a new click.
+        let walk = Input { keys: keys::FORWARD, yaw: 1.0, ..Default::default() };
+        for _ in 0..10 {
+            me.step(&walk, &s.map, &[]);
+        }
+        assert!(me.pos[0] != -4.0 || me.pos[2] != 2.0, "walks once it's out");
+
+        // And 1 can hit 2 once 2 is out.
+        s.playing(2).unwrap().state.shield = 0;
+        s.step();
+        let now = s.tick as f32;
+        fire_along_x(&mut s, 1, now);
+        assert!(hp(&mut s, 2) < 100, "fair game once out");
     }
 
     #[test]
@@ -637,6 +681,7 @@ mod tests {
         let s = server();
         let mut p = Player::new(1, 0);
         p.spawn([-9.0, 0.0, 2.0], 0.0);
+        p.shield = 0; // out already: this is about the guns and moving, not spawning
         hold(&mut p, &s.map, 0, PISTOL, 30); // get it out
         assert_eq!(hold(&mut p, &s.map, keys::FIRE, PISTOL, 60), 1);
         hold(&mut p, &s.map, 0, RIFLE, 40);
@@ -648,6 +693,7 @@ mod tests {
         let s = server();
         let mut p = Player::new(1, 0);
         p.spawn([-9.0, 0.0, 2.0], 0.0);
+        p.shield = 0; // out already: this is about the guns and moving, not spawning
         hold(&mut p, &s.map, 0, SNIPER, 90);
         let unscoped = p.spread();
         hold(&mut p, &s.map, keys::SCOPE, SNIPER, 1);
@@ -664,6 +710,7 @@ mod tests {
         let s = server();
         let mut p = Player::new(1, 0);
         p.spawn([-9.0, 0.0, 2.0], 0.0);
+        p.shield = 0; // out already: this is about the guns and moving, not spawning
         hold(&mut p, &s.map, keys::CROUCH | keys::FORWARD, RIFLE, 60);
         assert!(p.crouch == 1.0 && p.eye()[1] < 1.2);
         assert!(p.speed() < RUN * 0.4);

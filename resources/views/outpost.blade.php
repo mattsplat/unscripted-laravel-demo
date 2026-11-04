@@ -55,6 +55,9 @@
     .vitals b { font-size: 44px; min-width: 70px; }
     .vitals.low b, .vitals.low .plus { color: #ff4d3d; }
     .vitals .you { font-size: 13px; margin-left: 12px; letter-spacing: .04em; }
+    .looking { position: fixed; left: 50%; top: 62%; transform: translateX(-50%); text-align: center; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; color: #9fd8ff; text-shadow: 0 1px 3px #000; }
+    .looking b { font-size: 26px; color: #fff; }
+    .looking small { display: block; margin-top: 4px; font-size: 12px; letter-spacing: .04em; text-transform: none; color: #d6e6f2; }
     .dead { position: fixed; left: 50%; top: 62%; transform: translateX(-50%); font-size: 20px; letter-spacing: .06em; text-transform: uppercase; color: #ff6b5a; text-shadow: 0 1px 3px #000; }
     .hurt { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 45%, rgba(190,0,0,.55)); animation: fade .6s ease-out forwards; }
     @keyframes fade { from { opacity: 1; } to { opacity: 0; } }
