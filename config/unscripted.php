@@ -5,8 +5,9 @@ return [
     // `php artisan reverb:start` too).
     'transport' => env('UNSCRIPTED_TRANSPORT', 'http'),
 
-    // For Route::unscripted()'s page: the runtime and the PHP pack, from the checkout beside this
-    // app (a real app would leave these out, for the CDN).
-    'runtime' => '/vendor/unscripted/runtime/auto.js',
-    'pack' => '/vendor/unscripted/php84/php_pack.wasm',
+    // The runtime and the PHP pack, for every page here (and Route::unscripted()'s): from the CDN,
+    // or, for working on unscripted-js beside this app, from its checkout through the links in
+    // public/vendor/unscripted (set both in .env: see RUNNING.md).
+    'runtime' => env('UNSCRIPTED_RUNTIME', 'https://cdn.jsdelivr.net/npm/@mtjncn/runtime@0.1/auto.js'),
+    'pack' => env('UNSCRIPTED_PACK', 'https://cdn.jsdelivr.net/npm/@mtjncn/php84@0.1/php_pack.wasm'),
 ];

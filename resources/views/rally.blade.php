@@ -8,6 +8,8 @@
     html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0c11; color: #fff;
       font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif; }
     #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #engine { position: fixed; right: 12px; top: 10px; font: 12px ui-monospace, Menlo, monospace; color: #8a93a6; }
+    #engine a { color: #b9c2d3; }
     #fps { position: fixed; left: 10px; top: 8px; font: 12px ui-monospace, Menlo, monospace; color: #8fd18f; text-shadow: 0 1px 2px #000; pointer-events: none; }
 
     /* The scoreboard: you on the left, the computer on the right; a dot for whoever serves. */
@@ -58,11 +60,15 @@
 <body>
   <canvas id="world"></canvas>
   <div id="fps"></div>
+  @php($engine ??= 'webgl')
+  {{-- Two builds of the same game, to compare: rally/ draws with hand-written WebGL, rally3d/
+       with the three-d crate. Both share rally/src/sim.rs. --}}
+  <div id="engine">drawn with {{ $engine === 'three-d' ? 'three-d' : 'WebGL' }} ·
+    <a href="{{ $engine === 'three-d' ? '/rally' : '/rally-3d' }}">try {{ $engine === 'three-d' ? 'WebGL' : 'three-d' }}</a></div>
 
-  {{-- The game (rally/, built into public/wasm/rally): it all runs here. Sounds are made here
-       too, as it asks. --}}
+  {{-- The game (built into public/wasm/): it all runs here. Sounds are made here too, as it asks. --}}
   <script type="module">
-    import init, * as game from '/wasm/rally/rally.js';
+    import init, * as game from '{{ $engine === 'three-d' ? '/wasm/rally3d/rally3d.js' : '/wasm/rally/rally.js' }}';
     let ready = false, waiting = null;
     window.rally = { play: (level) => ready ? game.play(level) : (waiting = level) };
 
@@ -95,13 +101,16 @@
     };
     window.addEventListener('rally-sound', (e) => play(...e.detail));
 
-    // Frames a second, counted over each half second.
+    // Frames a second, counted over each half second, and the game's own work per frame: its
+    // average and the slowest, in milliseconds (the CPU's share; the screen caps the FPS).
     const fps = document.getElementById('fps');
     let frames = 0, since = performance.now();
     const count = (now) => {
       frames++;
       if (now - since >= 500) {
-        fps.textContent = `${Math.round(frames * 1000 / (now - since))} FPS`;
+        const [n, average, worst] = ready ? game.stats() : [0, 0, 0];
+        const work = n ? ` · ${average.toFixed(2)} ms, worst ${worst.toFixed(1)}` : '';
+        fps.textContent = `${Math.round(frames * 1000 / (now - since))} FPS${work}`;
         frames = 0;
         since = now;
       }
@@ -128,6 +137,6 @@
   {{-- Results are shared over Reverb: needs UNSCRIPTED_TRANSPORT=reverb and `php artisan reverb:start`. --}}
   @unscripted('rally')
   <script type="text/php" src="/unscripted/ui.php"></script>
-  <script src="/vendor/unscripted/runtime/auto.js" data-php="/vendor/unscripted/php84/php_pack.wasm"></script>
+  <script src="{{ config('unscripted.runtime') }}" data-php="{{ config('unscripted.pack') }}"></script>
 </body>
 </html>

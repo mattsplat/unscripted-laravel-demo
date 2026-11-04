@@ -1,0 +1,22 @@
+[package]
+name = "rally3d"
+version = "0.1.0"
+edition = "2021"
+description = "Rally drawn with three-d instead of hand-written WebGL: the same rules (../rally/src/sim.rs)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "=0.2.130"
+js-sys = "0.3"
+three-d = { version = "0.19", default-features = false }
+web-sys = { version = "0.3", features = [
+    "Window", "Document", "Element", "HtmlElement", "HtmlCanvasElement", "MouseEvent", "Event",
+    "EventTarget", "CustomEvent", "CustomEventInit", "Performance", "WebGl2RenderingContext",
+    "CanvasRenderingContext2d", "ImageData",
+] }
+
+[profile.release]
+opt-level = "s"
+lto = true

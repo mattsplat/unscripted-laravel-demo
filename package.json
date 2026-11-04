@@ -8,6 +8,7 @@
         "build:voxel": "cd voxel && cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --target web --no-typescript --out-dir ../public/wasm/voxel target/wasm32-unknown-unknown/release/voxel.wasm",
         "build:outpost": "cd outpost && cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --target web --no-typescript --out-dir ../public/wasm/outpost target/wasm32-unknown-unknown/release/outpost.wasm",
         "build:rally": "cd rally && cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --target web --no-typescript --out-dir ../public/wasm/rally target/wasm32-unknown-unknown/release/rally.wasm",
+        "build:rally3d": "cd rally3d && cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --target web --no-typescript --out-dir ../public/wasm/rally3d target/wasm32-unknown-unknown/release/rally3d.wasm",
         "outpost:server": "cd outpost/server && cargo run --release -- ../../resources/outpost/map.json"
     },
     "devDependencies": {

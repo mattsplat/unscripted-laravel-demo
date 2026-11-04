@@ -165,6 +165,6 @@
 
   @unscripted('outpost')
   <script type="text/php" src="/unscripted/ui.php"></script>
-  <script src="/vendor/unscripted/runtime/auto.js" data-php="/vendor/unscripted/php84/php_pack.wasm"></script>
+  <script src="{{ config('unscripted.runtime') }}" data-php="{{ config('unscripted.pack') }}"></script>
 </body>
 </html>

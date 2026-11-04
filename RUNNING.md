@@ -12,6 +12,7 @@ also needs its own game server.
 | Voxel (shared block world) | <http://localhost:8010/voxel> | web server, Reverb |
 | Outpost (team shooter) | <http://localhost:8010/outpost> | web server, Outpost game server |
 | Rally (table tennis) | <http://localhost:8010/rally> | web server; Reverb for the results list |
+| Rally, drawn with three-d | <http://localhost:8010/rally-3d> | the same |
 
 Reverb is needed wherever a page calls the server. `.env` sets `UNSCRIPTED_TRANSPORT=reverb`, so
 those calls go over Reverb's WebSocket instead of HTTP. Set it to `http` to run the apps
@@ -21,9 +22,14 @@ without Reverb, but you'll lose the live updates in Spread, Voxel and Rally.
 
 - **PHP 8.4** and **Composer**.
 - **Node**, through nvm: `nvm use` (the default, v20, works).
-- **The `unscripted-js` checkout** next to this folder, at `../unscripted-js`:
-  `public/vendor/unscripted/` links to its runtime and PHP build. Those npm packages aren't
-  published anywhere yet.
+- **Optional: the `unscripted-js` checkout** next to this folder, at `../unscripted-js`. The
+  pages load the runtime and PHP from the CDN (`@mtjncn/runtime`, `@mtjncn/php84`). To work on
+  them, load them from the checkout instead, through the links in `public/vendor/unscripted/`:
+
+  ```ini
+  UNSCRIPTED_RUNTIME=/vendor/unscripted/runtime/auto.js
+  UNSCRIPTED_PACK=/vendor/unscripted/php84/php_pack.wasm
+  ```
 - **Rust**, only to rebuild the games or run the Outpost server:
 
   ```sh
@@ -71,6 +77,7 @@ their Rust code:
 npm run build:voxel     # voxel/    -> public/wasm/voxel
 npm run build:outpost   # outpost/  -> public/wasm/outpost
 npm run build:rally     # rally/    -> public/wasm/rally
+npm run build:rally3d   # rally3d/  -> public/wasm/rally3d (the same game, drawn with three-d)
 ```
 
 The Outpost game server builds itself the first time it starts (below).
@@ -128,3 +135,16 @@ php artisan test                  # the Laravel side
 - **No sound.** Browsers start sound only after you click the page, so click into the game.
 - **"Address already in use".** Something else has that port (8010, 8081 or 8082). Stop it,
   or choose another port with `--port`.
+
+## Deploying (Laravel Cloud)
+
+Build commands: `composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader`,
+`npm ci`, `npm run build`. Don't run the `build:` game scripts there: there's no Rust, and the
+built games are committed in `public/wasm/`. Rebuild them here after changing their Rust, and
+commit the result.
+
+- Leave `UNSCRIPTED_RUNTIME` and `UNSCRIPTED_PACK` unset, for the CDN.
+- `UNSCRIPTED_TRANSPORT=reverb` needs Cloud's WebSockets (Reverb) set up, with the `REVERB_*`
+  variables; otherwise set it to `http` (Voxel's live updates need the socket).
+- Outpost's game server is a separate Rust program, which Cloud doesn't run: the Outpost page
+  loads, but can't reach a server.

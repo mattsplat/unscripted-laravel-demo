@@ -9,6 +9,7 @@ Route::view('/spread', 'spread');
 Route::view('/voxel', 'voxel');
 Route::view('/outpost', 'outpost');
 Route::view('/rally', 'rally');
+Route::view('/rally-3d', 'rally', ['engine' => 'three-d']);
 
 // Checks @unscripted/ui's features in a browser.
 Route::view('/features', 'features');

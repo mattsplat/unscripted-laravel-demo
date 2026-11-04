@@ -167,7 +167,7 @@ new class extends Component {
             <button class="go">{{ $phase === 'over' ? 'Play again' : 'Play' }}</button>
         </form>
         @if ($error) <p class="error">{{ $error }}</p> @endif
-        <p class="how">Move the mouse to move your paddle, up toward the net. Swing up through the ball to hit it: faster for pace, sideways to place it. Hold the right button for backspin. Esc pauses.</p>
+        <p class="how">Move the mouse to move your paddle, up toward the net. Get near the ball and your paddle meets it; swing up through it for pace, sideways to place it. Hold the right button for backspin. Esc pauses.</p>
 
         @if ($board['recent'])
             <div class="lists">

@@ -54,6 +54,11 @@ pub const BALL_R: f32 = 0.02;
 /// The paddle's blade, and how far from its middle the ball can be and still be hit.
 pub const PADDLE_R: f32 = 0.08;
 const REACH: f32 = PADDLE_R + BALL_R + 0.02;
+/// How far off your aim can be for your paddle to be drawn across to the ball: a mouse can't
+/// put it within the few centimetres a hit needs, as the ball comes.
+const ASSIST: f32 = 0.35;
+/// The least power your shots have: a paddle held still blocks the ball back.
+const BLOCK: f32 = 0.25;
 /// Where a paddle rests, over the floor, when there's nothing to hit.
 const REST_Y: f32 = 0.95;
 /// Where your paddle can go: x either way, z from over the table's end to well back.
@@ -466,8 +471,18 @@ impl Rally {
 
     /// Moves `side`'s paddle toward `want` (x, z): yours as fast as the mouse, the computer's
     /// at its speed. Its height follows the ball's on the way in.
-    fn reach(&mut self, side: usize, want: [f32; 2]) {
+    fn reach(&mut self, side: usize, mut want: [f32; 2]) {
         let s = sign(side);
+        // Your paddle's drawn across to where the ball's coming, all the way when you're close and
+        // less the further off you are, none past ASSIST.
+        if self.level[side].is_none() {
+            if let Some(at) = self.coming(side) {
+                let d = at[0] - want[0];
+                if d.abs() < ASSIST {
+                    want[0] += d * (1.0 - (d.abs() / ASSIST).powi(2));
+                }
+            }
+        }
         let behind = matches!(self.phase, Phase::Ready { .. } | Phase::Tossed) && self.server() == side;
         let near = if behind { HALF_L + 0.1 } else { YOUR_Z[0] };
         let want = [want[0].clamp(-YOUR_X, YOUR_X), (want[1] * s).clamp(near, YOUR_Z[1]) * s];
@@ -537,7 +552,7 @@ impl Rally {
                     None => {
                         let v = self.paddles[side].v;
                         Shot {
-                            power: ((-v[2] * s - 0.4) / 3.6).clamp(0.0, 1.3),
+                            power: ((-v[2] * s - 0.4) / 3.6).clamp(BLOCK, 1.3),
                             chop: input.chop,
                             aim: (v[0] / 2.5).clamp(-1.0, 1.0),
                             side: v[0],
@@ -937,6 +952,49 @@ mod tests {
 
     /// Plays your side as a person would with the mouse: gets in line with the ball, waits back,
     /// and pushes forward through it as it comes; tosses and swings to serve.
+    #[test]
+    fn a_rough_aim_still_meets_the_ball() {
+        // A player who's always 20 cm to one side of where the ball's going, and doesn't swing:
+        // the assist brings the paddle across, and a block sends it back.
+        let mut r = Rally::new(9);
+        r.start(1);
+        r.first = CPU;
+        r.ready();
+        let (mut returned, mut chances, mut landed, mut off) = (0, 0, 0, 0.2f32);
+        for _ in 0..60 * 60 * 3 {
+            let mut want = [0.0f32, 1.85f32];
+            if r.phase == Phase::Rally && r.hitter == CPU {
+                if let Some(at) = r.coming(YOU) {
+                    want[0] = at[0] + off;
+                }
+            }
+            if matches!(r.phase, Phase::Ready { .. }) && r.server() == YOU {
+                r.first ^= 1; // the computer serves throughout
+                r.ready();
+            }
+            let before = (r.hitter, r.bounces);
+            r.tick(&Input { paddle: want, chop: false, toss: false });
+            for e in r.events.drain(..) {
+                if let Event::Hit { who: YOU, .. } = e {
+                    returned += 1;
+                    off = -off;
+                }
+            }
+            if before.0 == CPU && before.1[YOU] == 0 && r.hitter == CPU && r.bounces[YOU] == 1 {
+                chances += 1;
+            }
+            if before.0 == YOU && before.1[CPU] == 0 && r.hitter == YOU && r.bounces[CPU] == 1 {
+                landed += 1;
+            }
+            if r.phase == Phase::Over {
+                r.start(1);
+            }
+        }
+        println!("returned {returned} of {chances}, {landed} landed, aiming 20 cm off");
+        assert!(chances > 30 && returned as f32 > chances as f32 * 0.8, "returned {returned} of {chances}");
+        assert!(landed as f32 > returned as f32 * 0.6, "{landed} of {returned} landed");
+    }
+
     #[test]
     fn swinging_through_the_ball_returns_it() {
         let mut r = Rally::new(5);

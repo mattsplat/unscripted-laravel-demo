@@ -4,7 +4,7 @@
 //!
 //! The page talks to it through window:
 //! - in: `start(canvasId)`, `play(level)` (0 easy, 1 normal, 2 hard: a new match), `logo(canvas)`
-//!   (an image for the table);
+//!   (an image for the table), `stats()` (frames, average and worst ms of work since the last call);
 //! - out: CustomEvents `rally-state` ({phase, score, games, server, why, last, paused}, JSON) when any of
 //!   it changes, `rally-end` ({games, points}, JSON) when a match is over, and `rally-sound`
 //!   [kind, volume].
@@ -513,6 +513,8 @@ struct Game {
     now: f64,
     /// CustomEvents to dispatch once the game isn't borrowed (a listener may call back in).
     outbox: Vec<(&'static str, JsValue)>,
+    /// Frames since the page last asked, and their total and worst milliseconds of work.
+    timing: (u32, f64, f64),
 }
 
 thread_local! {
@@ -1005,6 +1007,7 @@ pub fn start(canvas_id: &str) -> Result<(), JsValue> {
         told: String::new(),
         now,
         outbox: Vec::new(),
+        timing: (0, 0.0, 0.0),
     };
     GAME.with(|cell| *cell.borrow_mut() = Some(game));
 
@@ -1051,7 +1054,13 @@ pub fn start(canvas_id: &str) -> Result<(), JsValue> {
     let next: Rc<RefCell<Option<Closure<dyn FnMut(f64)>>>> = Rc::new(RefCell::new(None));
     let first = next.clone();
     *first.borrow_mut() = Some(Closure::new(move |now: f64| {
-        with_game(|g| g.frame(now));
+        with_game(|g| {
+            let performance = web_sys::window().unwrap().performance().unwrap();
+            let started = performance.now();
+            g.frame(now);
+            let took = performance.now() - started;
+            g.timing = (g.timing.0 + 1, g.timing.1 + took, g.timing.2.max(took));
+        });
         let window = web_sys::window().unwrap();
         let _ = window.request_animation_frame(next.borrow().as_ref().unwrap().as_ref().unchecked_ref());
     }));
@@ -1094,4 +1103,16 @@ pub fn play(level: u32) {
         g.points = [0, 0];
         g.last = -1;
     });
+}
+
+/// Frames drawn since the last call, and their average and worst milliseconds of work (the
+/// game's ticks and drawing, on the CPU: the GPU's share isn't counted).
+#[wasm_bindgen]
+pub fn stats() -> Vec<f64> {
+    let mut out = vec![0.0; 3];
+    with_game(|g| {
+        let (n, total, worst) = std::mem::take(&mut g.timing);
+        out = vec![n as f64, if n > 0 { total / n as f64 } else { 0.0 }, worst];
+    });
+    out
 }
