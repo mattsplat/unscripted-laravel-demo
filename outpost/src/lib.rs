@@ -281,9 +281,9 @@ const MUZZLES: [V3; 3] = [[0.0, 0.009, 0.69], [0.0, 0.03, 0.17], [0.0, 0.006, 0.
 /// Where someone else's gun's muzzle is, in their own space.
 fn remote_muzzle(gun: u8) -> V3 {
     match gun {
-        PISTOL => [0.02, 1.345, 0.6],
-        SNIPER => [0.075, 1.26, 1.13],
-        _ => [0.075, 1.265, 0.88],
+        PISTOL => [0.02, 1.345, 0.7],
+        SNIPER => [0.075, 1.26, 1.415],
+        _ => [0.075, 1.265, 1.09],
     }
 }
 
@@ -301,6 +301,8 @@ struct Remote {
     /// How far down they are (0 to 1), and the gun they have out.
     crouch: f32,
     gun: u8,
+    /// How big their gun's drawn (1 as modelled), scaled about their trigger hand: for `lineup`.
+    gun_scale: f32,
 }
 
 impl Remote {
@@ -436,10 +438,15 @@ impl Remote {
         part(v, [0.18, 1.3, -0.07], [0.27, 1.42, 0.07], FLAT, kit.vest, &arms); // shoulder pad
 
         let (butt, length) = match self.gun {
-            PISTOL => ([0.02, 1.345, 0.36], 0.24),
-            SNIPER => ([0.075, 1.26, -0.1], 1.23),
-            _ => ([0.075, 1.265, -0.08], 0.96),
+            // Drawn bigger than life (the magnum 1.5 times, the others 1.3), so they read at a
+            // distance; `lineup` shows the sizes side by side.
+            PISTOL => ([0.02, 1.345, 0.34], 0.36),
+            SNIPER => ([0.075, 1.26, -0.184], 1.6),
+            _ => ([0.075, 1.265, -0.158], 1.248),
         };
+        let hand = if self.gun == PISTOL { 0.4 } else { 0.18 };
+        let butt = [butt[0], butt[1], hand + (butt[2] - hand) * self.gun_scale];
+        let length = length * self.gun_scale;
         let modeled = gun_model(v, self.gun, butt, length, &arms);
         if !modeled { match self.gun {
             PISTOL => {
@@ -586,6 +593,8 @@ struct Game {
     told_paused: bool,
     /// The bots' level, as the server last said.
     level: Option<u8>,
+    /// A fixed camera, while `lineup` is showing.
+    lineup: Option<(V3, f32, f32)>,
 
     now: f64,
     /// CustomEvents to dispatch once the game isn't borrowed (a listener may call back in).
@@ -676,6 +685,9 @@ impl Game {
 
     /// The camera: where it is and which way it looks (recoil shows, a little).
     fn camera(&self) -> (V3, f32, f32) {
+        if let Some(view) = self.lineup {
+            return view;
+        }
         if self.id.is_none() {
             // Before joining: a slow look round the map from above.
             let t = (self.now / 1000.0 * 0.06) as f32;
@@ -862,7 +874,7 @@ impl Game {
 
     /// Everyone else, where they were at the view tick: between the snapshots either side.
     fn place_others(&mut self) {
-        if self.snapshots.is_empty() {
+        if self.snapshots.is_empty() || self.lineup.is_some() {
             return;
         }
         let at = self.view_tick();
@@ -898,6 +910,7 @@ impl Game {
                 moving: 0.0,
                 crouch,
                 gun: s.gun,
+                gun_scale: 1.0,
             });
             // Their legs go round with the ground they cover, and settle when they stop.
             let moved = ((pos[0] - r.at[0]).powi(2) + (pos[2] - r.at[2]).powi(2)).sqrt().min(0.5);
@@ -1651,6 +1664,7 @@ pub fn start(canvas_id: &str, boxes: Vec<f32>, url: &str) -> Result<(), JsValue>
         told: (0, false, 0),
         told_paused: true,
         level: None,
+        lineup: None,
         now,
         outbox: Vec::new(),
     };
@@ -1821,6 +1835,37 @@ pub fn sync() {
 #[wasm_bindgen]
 pub fn level(level: u8) {
     with_game(|g| g.send(&ToServer::Level { level }));
+}
+
+/// For choosing how big guns should look in people's hands: stands a row of people side on to a
+/// fixed camera, all with gun `gun`, each drawn at the next of `scales` (left to right), and
+/// stops showing the real players. Reload the page to go back.
+#[wasm_bindgen]
+pub fn lineup(gun: u8, scales: Vec<f32>, at: Vec<f32>) {
+    with_game(|g| {
+        let gap = 2.1;
+        let [x, z] = [at[0], at[1]];
+        let left = x - gap * (scales.len() as f32 - 1.0) / 2.0;
+        g.remotes.clear();
+        for (i, &scale) in scales.iter().enumerate() {
+            g.remotes.insert(1000 + i as u32, Remote {
+                at: [left + gap * i as f32, 0.0, z],
+                yaw: std::f32::consts::FRAC_PI_2, // facing +x: their right side to the camera
+                pitch: 0.0,
+                team: i % 2,
+                alive: true,
+                dead_at: None,
+                flash_until: 0.0,
+                stride: 0.0,
+                moving: 0.0,
+                crouch: 0.0,
+                gun,
+                gun_scale: scale,
+            });
+        }
+        let far = 0.6 * gap * scales.len() as f32;
+        g.lineup = Some(([x, 1.2, z + far], 0.0, -0.03));
+    });
 }
 
 /// Joins the game as `name`: now if the socket's open, else once it is.

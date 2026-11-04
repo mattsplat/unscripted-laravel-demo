@@ -101,7 +101,7 @@
     import init, * as game from '/wasm/outpost/outpost.js';
     const map = @json(json_decode(file_get_contents(resource_path('outpost/map.json')), true));
     let ready = false, joining = null;
-    window.outpost = { join: (name) => ready ? game.join(name) : (joining = name), level: (n) => ready && game.level(n), sync: () => ready && game.sync() };
+    window.outpost = { join: (name) => ready ? game.join(name) : (joining = name), level: (n) => ready && game.level(n), sync: () => ready && game.sync(), lineup: (gun, scales, at) => ready && game.lineup(gun, scales, at) };
 
     // Sounds, made up as needed: a crack and a thump for shots (bigger for bigger guns), clicks
     // for the rest.
