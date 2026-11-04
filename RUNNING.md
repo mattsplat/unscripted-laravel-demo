@@ -105,9 +105,10 @@ same address the page came from.
 
 ### Outpost options
 
-- The bots' level (Easy, Normal, Hard) is one for the whole match: anyone can change it on the
-  join screen or while paused (Esc), and everyone sees it. `OUTPOST_BOT_LEVEL` (0, 1, 2) sets
-  where it starts (1, Normal); each level's settings are `SKILLS` in `outpost/server/src/bots.rs`.
+- The bots' level (Off, Easy, Normal, Hard) is one for the whole match: anyone can change it on
+  the join screen or while paused (Esc), and everyone sees it. Off takes every bot out; turning
+  them back on refills the teams. `OUTPOST_BOT_LEVEL` (0 to 3) sets where it starts (2, Normal);
+  each level's settings are `SKILLS` in `outpost/server/src/bots.rs`.
 - `OUTPOST_BOTS=0 npm run outpost:server` turns off computer players. The default fills each
   team up to 2 players, and bots make way as people join.
 - `OUTPOST_PORT` changes the game server's port (8082 by default). The page always connects to

@@ -11,9 +11,14 @@ Unscripted components around them for the menus, scoreboards and results.
 
 ## The apps
 
+| Outpost | Rally | Voxel | Spread |
+|---|---|---|---|
+| ![Outpost](public/images/screens/outpost.jpg) | ![Rally](public/images/screens/rally-3d.jpg) | ![Voxel](public/images/screens/voxel.jpg) | ![Spread](public/images/screens/spread.jpg) |
+
 | Page | What it is | What it shows |
 |---|---|---|
-| [`/`](resources/components/todos.blade.php) | A todo list | Loaders (`#[Server, Watch]`), validation, permissions (`can:`), server rendering, live updates |
+| [`/`](resources/views/home.blade.php) | The landing page: links to everything below | |
+| [`/todos`](resources/components/todos.blade.php) | A todo list | Loaders (`#[Server, Watch]`), validation, permissions (`can:`), server rendering, live updates |
 | [`/counters`](resources/components/counters.blade.php) | Counters in a parent | Nested components (`@child`), props, events, `Route::unscripted()` |
 | [`/features`](resources/components/features.blade.php) | A checklist | The framework's features in one page, for checking in a browser |
 | [`/spread`](resources/components/spread.blade.php) | A multiplayer board game: everyone paints one 12×12 board in 60-second rounds | Rules the server enforces and the browser previews; `#[Live]` boards on every player's page |

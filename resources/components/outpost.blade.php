@@ -14,7 +14,7 @@ new class extends Component {
     /** By gun number: its kill-feed icon. */
     const GUNS = ['rifle', 'pistol', 'sniper'];
     /** The bots' levels, for the whole match: anyone can change it, and everyone sees. */
-    const LEVELS = ['Easy', 'Normal', 'Hard'];
+    const LEVELS = ['Off', 'Easy', 'Normal', 'Hard'];
 
     #[State] public string $name = '';
     public ?string $error = null;
@@ -26,8 +26,8 @@ new class extends Component {
     public bool $alive = true;
     /** Seconds left to look around after spawning: unseen, unhittable, and not moving or shooting. */
     public int $shield = 0;
-    /** The bots' level (an index into LEVELS), from the game server. */
-    public int $level = 1;
+    /** The bots' level (an index into LEVELS: 0 is none), from the game server. */
+    public int $level = 2;
     /** Whether the game's paused (the mouse let go, with Esc): the time to change things. */
     public bool $paused = true;
     /** Everyone in, by id: name, team, kills, deaths, alive. */

@@ -17,7 +17,7 @@ use crate::sim::*;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
-/// How good the bots are: one of `SKILLS`, chosen for the whole match (Easy, Normal, Hard).
+/// How good the bots are: one of `SKILLS`, chosen for the whole match (Easy, Normal, Hard; or Off, for none).
 #[derive(Clone, Copy, Debug)]
 pub struct Skill {
     /// The share of a gun's damage their shots do to people (to each other, all of it).

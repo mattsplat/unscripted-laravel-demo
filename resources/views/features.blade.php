@@ -7,7 +7,7 @@
 </head>
 <body>
   {{-- Checks @unscripted/ui's features in a browser. --}}
-  <nav><a u-navigate id="to-counters" href="/counters">counters</a> <a u-navigate id="to-todos" href="/">todos</a></nav>
+  <nav><a u-navigate id="to-counters" href="/counters">counters</a> <a u-navigate id="to-todos" href="/todos">todos</a></nav>
   <div u-persist="player" id="player">persisted</div>
   @unscripted('features')
   @unscripted('listener', ['id' => 'listener'])

@@ -13,7 +13,7 @@
 //! - out: CustomEvents `outpost-status` ("open" / "closed"), `outpost-welcome` ({id, team}, JSON),
 //!   `outpost-roster` ([{id, name, team, kills, deaths, alive}], JSON), `outpost-hp` [hp, alive, seconds left looking around after spawning],
 //!   `outpost-kill` ({killer, victim, head, gun}, JSON), `outpost-sound` [kind, volume, gun] and
-//!   `outpost-scores` [1/0], `outpost-level` [0 easy / 1 normal / 2 hard] and `outpost-paused`
+//!   `outpost-scores` [1/0], `outpost-level` [0 off / 1 easy / 2 normal / 3 hard] and `outpost-paused`
 //!   [1/0] (the mouse let go).
 //!
 //! Controls: click to play (pointer lock), WASD to move, shift to crouch, space to jump, mouse to
@@ -1816,7 +1816,7 @@ pub fn sync() {
     });
 }
 
-/// Sets the bots' level for the whole match: 0 easy, 1 normal, 2 hard. Everyone's told
+/// Sets the bots' level for the whole match: 0 off (no bots), 1 easy, 2 normal, 3 hard. Everyone's told
 /// (`outpost-level`), this page included.
 #[wasm_bindgen]
 pub fn level(level: u8) {

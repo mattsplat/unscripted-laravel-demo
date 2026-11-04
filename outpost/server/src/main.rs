@@ -7,7 +7,7 @@
 //! 0.3 s back), so what you hit on your screen is what you hit.
 //!
 //! Computer players (bots.rs) fill each team up to OUTPOST_BOTS players (2; 0 for none),
-//! making way as people join.
+//! making way as people join, at the level anyone in the match picks (Off takes them all out).
 //!
 //! Usage: outpost-server [map.json] (default ../../resources/outpost/map.json); OUTPOST_PORT
 //! sets the port (8082).
@@ -85,7 +85,8 @@ struct Server {
     nav: bots::Nav,
     team_size: usize,
     next_bot: u32,
-    /// The bots' level, for the whole match: an index into `bots::SKILLS`. Anyone can change it.
+    /// The bots' level, for the whole match: 0 for no bots, else one past an index into
+    /// `bots::SKILLS` (1 easy, 2 normal, 3 hard). Anyone can change it.
     level: u8,
 }
 
@@ -96,7 +97,7 @@ impl Server {
             nav,
             team_size,
             next_bot: FIRST_BOT,
-            level: 1,
+            level: 2,
             map,
             spawns,
             clients: HashMap::new(),
@@ -121,19 +122,26 @@ impl Server {
         counts
     }
 
-    /// Bots in or out, so each team has `team_size` players (people count first).
+    /// The bots' settings at the match's level (when they're on).
+    fn skill(&self) -> bots::Skill {
+        bots::SKILLS[self.level.max(1) as usize - 1]
+    }
+
+    /// Bots in or out, so each team has `team_size` players (people count first); with the
+    /// bots off, none.
     fn balance(&mut self) {
+        let size = if self.level == 0 { 0 } else { self.team_size };
         for team in 0..2u8 {
             loop {
                 let [people, bots] = self.counts()[team as usize];
-                if people + bots < self.team_size {
+                if people + bots < size {
                     let id = self.next_bot;
                     self.next_bot += 1;
                     let (out, _) = unbounded_channel();
                     self.clients.insert(id, Client { out, playing: None, brain: Some(bots::Brain::new(id)) });
                     let name = format!("BOT {}", BOT_NAMES[(id - FIRST_BOT) as usize % BOT_NAMES.len()]);
                     self.add_player(id, name, team);
-                } else if bots > 0 && people + bots > self.team_size {
+                } else if bots > 0 && people + bots > size {
                     let bot = self.clients.iter().find(|(_, c)| c.brain.is_some() && c.playing.as_ref().is_some_and(|p| p.state.team == team));
                     let Some((&id, _)) = bot else { break };
                     self.clients.remove(&id);
@@ -189,11 +197,12 @@ impl Server {
                 self.clients.insert(id, Client { out, playing: None, brain: None });
             }
             From::Message(ToServer::Level { level }) => {
-                if (level as usize) < bots::SKILLS.len() && level != self.level {
+                if (level as usize) <= bots::SKILLS.len() && level != self.level {
                     self.level = level;
                     for client in self.clients.values().filter(|c| c.brain.is_none()) {
                         send(&client.out, &ToClient::Level { level });
                     }
+                    self.balance();
                 }
             }
             From::Closed => {
@@ -302,7 +311,7 @@ impl Server {
             .filter_map(|(&id, c)| c.playing.as_ref().map(|p| (id, p)))
             .map(|(id, p)| bots::Other { id, pos: p.state.pos, crouch: p.state.crouch, team: p.state.team, alive: p.state.exposed() })
             .collect();
-        let skill = bots::SKILLS[self.level as usize];
+        let skill = self.skill();
         let Server { clients, map, nav, tick, .. } = self;
         for (&id, client) in clients.iter_mut() {
             let (Some(brain), Some(p)) = (client.brain.as_mut(), client.playing.as_mut()) else { continue };
@@ -357,7 +366,7 @@ impl Server {
         let from = self.playing(by).map(|p| p.state.pos);
         // Bots hit people softer (each other at full strength, so their fights still end).
         let bot = |id: u32| self.clients.get(&id).is_some_and(|c| c.brain.is_some());
-        let share = bots::SKILLS[self.level as usize].damage;
+        let share = self.skill().damage;
         let amount = if bot(by) && !bot(victim) { (amount as f32 * share).ceil() as i32 } else { amount };
         if let Some(brain) = self.clients.get_mut(&victim).and_then(|c| c.brain.as_mut()) {
             brain.shot_from = from;
@@ -497,9 +506,10 @@ async fn main() {
     });
 
     let mut server = Server::new(map, spawns, team_size);
-    // OUTPOST_BOT_LEVEL: the bots' level to start at (0 easy, 1 normal, 2 hard); players change it.
-    if let Some(level) = std::env::var("OUTPOST_BOT_LEVEL").ok().and_then(|n| n.parse::<u8>().ok()).filter(|&n| n < 3) {
+    // OUTPOST_BOT_LEVEL: the bots' level to start at (0 off, 1 easy, 2 normal, 3 hard); players change it.
+    if let Some(level) = std::env::var("OUTPOST_BOT_LEVEL").ok().and_then(|n| n.parse::<u8>().ok()).filter(|&n| n <= 3) {
         server.level = level;
+        server.balance();
     }
     let mut clock = tokio::time::interval(Duration::from_micros(1_000_000 / TICK_RATE as u64));
     loop {
@@ -824,7 +834,7 @@ mod tests {
     #[test]
     #[ignore]
     fn how_deadly_the_bots_are() {
-        for level in 0..3u8 {
+        for level in 1..=3u8 {
         let (mut deaths, mut kills) = (0, 0);
         for seed in 0..4 {
             let mut s = with_bots(2);
@@ -869,12 +879,32 @@ mod tests {
             }
             last
         };
-        assert_eq!((level(&mut in1), level(&mut in2)), (Some(1), Some(1)), "told on connecting");
-        s.receive(2, From::Message(ToServer::Level { level: 0 }));
-        assert_eq!(s.level, 0);
-        assert_eq!((level(&mut in1), level(&mut in2)), (Some(0), Some(0)), "everyone told");
+        assert_eq!((level(&mut in1), level(&mut in2)), (Some(2), Some(2)), "told on connecting");
+        s.receive(2, From::Message(ToServer::Level { level: 1 }));
+        assert_eq!(s.level, 1);
+        assert_eq!((level(&mut in1), level(&mut in2)), (Some(1), Some(1)), "everyone told");
         s.receive(1, From::Message(ToServer::Level { level: 9 }));
-        assert_eq!(s.level, 0, "no such level");
+        assert_eq!(s.level, 1, "no such level");
+    }
+
+    #[test]
+    fn turning_the_bots_off_takes_them_out_and_on_brings_them_back() {
+        let mut s = with_bots(2);
+        let (out, _) = unbounded_channel();
+        s.receive(1, From::Open(out));
+        s.receive(1, From::Message(ToServer::Join { name: "Alpha".into() }));
+        assert_eq!(s.counts(), [[1, 1], [0, 2]]);
+        s.receive(1, From::Message(ToServer::Level { level: 0 }));
+        assert_eq!(s.counts(), [[1, 0], [0, 0]], "only people left");
+        for _ in 0..TICK_RATE {
+            s.step(); // nothing to think for
+        }
+        let (out, _) = unbounded_channel();
+        s.receive(2, From::Open(out));
+        s.receive(2, From::Message(ToServer::Join { name: "Bravo".into() }));
+        assert_eq!(s.counts(), [[1, 0], [1, 0]], "no bots for newcomers either");
+        s.receive(2, From::Message(ToServer::Level { level: 3 }));
+        assert_eq!(s.counts(), [[1, 1], [1, 1]], "back to two a side");
     }
 
     #[test]

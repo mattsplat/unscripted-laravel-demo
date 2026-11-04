@@ -2,7 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'todos');
+Route::view('/', 'home');
+Route::view('/todos', 'todos');
 
 // Spread, a multiplayer game: open it in two windows.
 Route::view('/spread', 'spread');
