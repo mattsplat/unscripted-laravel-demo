@@ -1,58 +1,66 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Unscripted Laravel demo
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Demo apps for [Unscripted](https://github.com/mattsplat/unscripted-js) components on
+Laravel. A component is a PHP class and a Blade template, written the way you'd write a
+Livewire one, but it **runs in the browser**: PHP 8.4 compiled to WebAssembly renders it there,
+so clicks, typing and re-renders need no request. Only the methods marked `#[Server]` run on
+Laravel, and the browser calls them.
 
-## About Laravel
+The games go further: their engines are Rust compiled to WebAssembly and drawn with WebGL, with
+Unscripted components around them for the menus, scoreboards and results.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## The apps
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Page | What it is | What it shows |
+|---|---|---|
+| [`/`](resources/components/todos.blade.php) | A todo list | Loaders (`#[Server, Watch]`), validation, permissions (`can:`), server rendering, live updates |
+| [`/counters`](resources/components/counters.blade.php) | Counters in a parent | Nested components (`@child`), props, events, `Route::unscripted()` |
+| [`/features`](resources/components/features.blade.php) | A checklist | The framework's features in one page, for checking in a browser |
+| [`/spread`](resources/components/spread.blade.php) | A multiplayer board game: everyone paints one 12×12 board in 60-second rounds | Rules the server enforces and the browser previews; `#[Live]` boards on every player's page |
+| [`/voxel`](resources/components/voxel.blade.php) | A shared block world (Rust, WebGL) | A Rust game and a PHP component talking through events; `Live::send()` for other players' moves |
+| [`/outpost`](outpost/README.md) | A team shooter, with bots (Rust, WebGL, and a Rust game server) | An authoritative game server with client prediction; the HUD as a component |
+| [`/rally`](resources/components/rally.blade.php) | Table tennis against the computer (Rust, WebGL) | Ball physics with spin, a computer player, results saved through a `#[Server]` method |
+| `/rally-3d` | The same Rally, drawn with the [three-d](https://github.com/asny/three-d) crate | The same game (it shares `rally/src/sim.rs`) on a ready-made renderer, to compare looks, size and speed |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Running it
 
-## Learning Laravel
+```sh
+composer install && npm install
+cp .env.example .env && php artisan key:generate
+touch database/database.sqlite && php artisan migrate
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan serve --host=0.0.0.0 --port=8010   # the pages
+php artisan reverb:start --port=8081           # calls and live updates over a WebSocket
+npm run outpost:server                         # only for Outpost: its game server
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+**[RUNNING.md](RUNNING.md)** has the details: what to install, the `.env` settings, rebuilding
+the games, the tests, deploying to Laravel Cloud, and what to do when something doesn't work.
 
-## Contributing
+## What's where
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| | |
+|---|---|
+| `resources/components/` | The Unscripted components, one `.blade.php` each: a PHP class, then its template |
+| `resources/views/` | The pages that put them on, and the games' canvases and sounds |
+| `voxel/`, `outpost/`, `rally/`, `rally3d/` | The games' Rust. Built into `public/wasm/` (committed, so deploys need no Rust) |
+| `outpost/server/` | Outpost's game server, native Rust |
+| `config/unscripted.php` | Which transport calls use (`http` or `reverb`), and where the runtime loads from |
+| `database/migrations/` | Todos, Spread, Voxel and Rally's tables |
 
-## Code of Conduct
+## The packages it uses
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- [`unscripted/ui-server`](https://github.com/mattsplat/unscripted-ui-server) (Composer): the
+  Laravel side, which serves components, renders them first and runs `#[Server]` methods.
+  [Its docs](https://github.com/mattsplat/unscripted-ui-server/tree/main/docs) start with a
+  quickstart and a guide for people coming from Livewire.
+- [`@mtjncn/ui`](https://www.npmjs.com/package/@mtjncn/ui),
+  [`@mtjncn/runtime`](https://www.npmjs.com/package/@mtjncn/runtime) and
+  [`@mtjncn/php84`](https://www.npmjs.com/package/@mtjncn/php84) (npm): the framework, the
+  browser runtime and PHP itself. The pages load them from jsDelivr.
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+All of them are developed in [unscripted-js](https://github.com/mattsplat/unscripted-js).
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT, as `composer.json` says.

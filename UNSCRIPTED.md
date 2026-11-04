@@ -2,9 +2,8 @@
 
 A demo of `#[Server]` methods: `resources/components/todos.blade.php`, mounted by
 `resources/views/todos.blade.php`. Composer installs `unscripted/ui-server` from its
-own repo (`mattsplat/unscripted-ui-server`). The browser side still needs the
-`unscripted-js` checkout next to this folder (`../unscripted-js`), for `public/vendor/unscripted`'s
-links.
+own repo (`mattsplat/unscripted-ui-server`), and the pages load the runtime and PHP from the CDN
+(or from the `unscripted-js` checkout beside this folder: see RUNNING.md).
 
 ```sh
 php artisan migrate:fresh --seed
