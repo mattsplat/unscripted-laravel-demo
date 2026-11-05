@@ -17,7 +17,9 @@ Unscripted components around them for the menus, scoreboards and results.
 
 | Page | What it is | What it shows |
 |---|---|---|
-| [`/`](resources/views/home.blade.php) | The landing page: links to everything below | |
+| [`/`](resources/views/landing.blade.php) | Unscripted's landing page: what it is, links to the docs and the examples | |
+| [`/examples`](resources/views/home.blade.php) | Every example below, with screenshots | |
+| [`/docs`](app/Http/Controllers/DocsController.php) | The components' docs, from `unscripted/ui-server`'s `docs/` folder | |
 | [`/todos`](resources/components/todos.blade.php) | A todo list | Loaders (`#[Server, Watch]`), validation, permissions (`can:`), server rendering, live updates |
 | [`/counters`](resources/components/counters.blade.php) | Counters in a parent | Nested components (`@child`), props, events, `Route::unscripted()` |
 | [`/features`](resources/components/features.blade.php) | A checklist | The framework's features in one page, for checking in a browser |

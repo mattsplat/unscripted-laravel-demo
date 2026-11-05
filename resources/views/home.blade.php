@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Unscripted demos</title>
+  <title>Examples · Unscripted</title>
   <style>
     :root { --bg: #0b0e14; --card: #141923; --line: #232a37; --text: #e8ebf1; --dim: #8c95a6; --gold: #e8b04a; }
     * { box-sizing: border-box; }
@@ -14,6 +14,9 @@
     header h1 span { color: var(--gold); }
     header p { max-width: 640px; margin: 0; color: var(--dim); font-size: 18px; }
     header p a { color: var(--gold); }
+    header .back { margin-bottom: 18px; font-size: 15px; }
+    header .back a { color: var(--dim); text-decoration: none; }
+    header .back a:hover { color: var(--text); }
     .cta { margin-top: 22px !important; display: flex; gap: 12px; }
     .cta a { display: inline-block; padding: 10px 18px; border-radius: 8px; background: var(--gold); color: #111; font-weight: 600; text-decoration: none; font-size: 15px; }
     .cta a.ghost { background: none; color: var(--text); border: 1px solid var(--line); }
@@ -38,7 +41,8 @@
 <body>
 <main>
   <header>
-    <h1>Unscripted <span>demos</span></h1>
+    <p class="back"><a href="/">← Unscripted</a></p>
+    <h1>Unscripted <span>examples</span></h1>
     <p>PHP components that run in the browser, compiled to WebAssembly, with games written in
       Rust around them. Pick one to play, or <a href="/docs">read the docs</a> and build your own.</p>
     <p class="cta"><a href="/docs">Read the docs</a> <a href="/docs/quickstart" class="ghost">Quickstart</a></p>

@@ -14,7 +14,8 @@ class ExampleTest extends TestCase
      */
     public function test_the_application_returns_a_successful_response(): void
     {
-        $this->get('/')->assertOk()->assertSee('Outpost');
+        $this->get('/')->assertOk()->assertSee('run in the browser')->assertSee('href="/examples"', false)->assertSee('href="/docs"', false);
+        $this->get('/examples')->assertOk()->assertSee('Outpost');
         $this->get('/todos')->assertOk();
     }
 }

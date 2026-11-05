@@ -3,7 +3,8 @@
 use App\Http\Controllers\DocsController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'home');
+Route::view('/', 'landing');
+Route::view('/examples', 'home');
 Route::view('/todos', 'todos');
 
 // The components' docs, from unscripted/ui-server's docs/ folder.

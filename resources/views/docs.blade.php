@@ -87,10 +87,10 @@
 </head>
 <body>
   <header class="top">
-    <a class="brand" href="/docs"><i></i>Unscripted <small>docs</small></a>
+    <a class="brand" href="/"><i></i>Unscripted <small>docs</small></a>
     <nav>
       <a href="/docs/quickstart">Quickstart</a>
-      <a href="/">Demos</a>
+      <a href="/examples">Examples</a>
       <a href="https://github.com/mattsplat/unscripted-ui-server">GitHub</a>
     </nav>
     <button class="menu" onclick="document.querySelector('.side').classList.toggle('open')">Menu</button>
