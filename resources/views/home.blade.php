@@ -68,6 +68,7 @@
   <section class="grid small">
     @foreach ([
       ['/todos', 'Todos', 'Server loaders, validation and live updates.'],
+      ['/big-list', 'Big list', 'Search, filter and sort 10,000 rows with no requests.'],
       ['/counters', 'Counters', 'Nested components, props and events.'],
       ['/features', 'Features', 'Every framework feature on one page.'],
     ] as [$href, $name, $about])

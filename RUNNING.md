@@ -103,6 +103,22 @@ Including `--host=0.0.0.0` lets other machines on your network play too. Open
 `http://<this machine's IP>:8010/...` on them. Reverb and the Outpost server are reached at the
 same address the page came from.
 
+### With Herd (https)
+
+Herd serves the pages at `https://unscripted-laravel-demo.test`, and an https page can't open
+Reverb's plain `ws://` socket. Put Reverb behind a Herd proxy and point the browser at it
+(Laravel itself keeps publishing to Reverb directly):
+
+```sh
+herd proxy reverb-unscripted http://127.0.0.1:8081 --secure
+```
+
+```ini
+UNSCRIPTED_SOCKET_URL="wss://reverb-unscripted.test/app/${REVERB_APP_KEY}?protocol=7&client=unscripted&version=0.1"
+```
+
+Then start Reverb as usual (step 2).
+
 ### Outpost options
 
 - The bots' level (Off, Easy, Normal, Hard) is one for the whole match: anyone can change it on

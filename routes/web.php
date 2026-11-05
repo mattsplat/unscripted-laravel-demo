@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'landing');
 Route::view('/examples', 'home');
 Route::view('/todos', 'todos');
+Route::view('/big-list', 'big-list');
 
 // The components' docs, from unscripted/ui-server's docs/ folder.
 Route::get('/docs/{page?}', DocsController::class);
