@@ -159,6 +159,20 @@ BLADE;
   </section>
 
   <section>
+    <h2>Running in the browser</h2>
+    <p class="sub">Livewire is a great way to build Laravel interfaces, and Unscripted borrows a lot from it.
+      Running the component in the browser instead gives it a few traits of its own.</p>
+    <div class="features">
+      <div><h3>Instant interactions</h3><p>Typing, toggling, sorting and filtering run locally, so they feel the same on any network.</p></div>
+      <div><h3>One language, both sides</h3><p>The same PHP class, rules and logic run in the browser and on the server. Nothing to rewrite in JavaScript to make it instant.</p></div>
+      <div><h3>Calls when you need them</h3><p>The server hears from the page when a <code class="inline">#[Server]</code> method runs: saves, queries, uploads. Clicks and keystrokes stay in the browser.</p></div>
+      <div><h3>Large state, kept local</h3><p>Thousands of rows can live in a component and be searched or sorted without sending them anywhere. <a href="/big-list" style="color:var(--gold)">Try the big list</a>.</p></div>
+      <div><h3>Steady on weak connections</h3><p>When the connection drops, the page keeps working; only the server calls wait for it to come back.</p></div>
+      <div><h3>Familiar if you know Livewire</h3><p>Most names carry over: <code class="inline">wire:model</code> is <code class="inline">u-model</code>, <code class="inline">#[Computed]</code> and <code class="inline">#[Url]</code> are the same. <a href="/docs/coming-from-livewire" style="color:var(--gold)">See the mapping</a>.</p></div>
+    </div>
+  </section>
+
+  <section>
     <h2>Examples</h2>
     <p class="sub">Games in Rust and WebGL, with Unscripted components for their menus, scores and results; and smaller demos of the framework itself.</p>
     <div class="shots">
