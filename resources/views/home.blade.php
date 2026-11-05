@@ -13,6 +13,11 @@
     header h1 { font-size: 44px; margin: 0 0 8px; letter-spacing: -.02em; }
     header h1 span { color: var(--gold); }
     header p { max-width: 640px; margin: 0; color: var(--dim); font-size: 18px; }
+    header p a { color: var(--gold); }
+    .cta { margin-top: 22px !important; display: flex; gap: 12px; }
+    .cta a { display: inline-block; padding: 10px 18px; border-radius: 8px; background: var(--gold); color: #111; font-weight: 600; text-decoration: none; font-size: 15px; }
+    .cta a.ghost { background: none; color: var(--text); border: 1px solid var(--line); }
+    .cta a.ghost:hover { border-color: var(--gold); }
     h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin: 48px 0 16px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
     .card { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line);
@@ -35,7 +40,8 @@
   <header>
     <h1>Unscripted <span>demos</span></h1>
     <p>PHP components that run in the browser, compiled to WebAssembly, with games written in
-      Rust around them. Pick one to play.</p>
+      Rust around them. Pick one to play, or <a href="/docs">read the docs</a> and build your own.</p>
+    <p class="cta"><a href="/docs">Read the docs</a> <a href="/docs/quickstart" class="ghost">Quickstart</a></p>
   </header>
 
   <h2>Games</h2>

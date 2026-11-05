@@ -1,9 +1,13 @@
 <?php
 
+use App\Http\Controllers\DocsController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'home');
 Route::view('/todos', 'todos');
+
+// The components' docs, from unscripted/ui-server's docs/ folder.
+Route::get('/docs/{page?}', DocsController::class);
 
 // Spread, a multiplayer game: open it in two windows.
 Route::view('/spread', 'spread');
