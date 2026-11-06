@@ -20,5 +20,6 @@
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1"
-    }
+    },
+    "web-types": "./vendor/unscripted/ui-server/resources/ide/web-types.json"
 }

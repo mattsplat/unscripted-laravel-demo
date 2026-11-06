@@ -6926,12 +6926,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/mattsplat/unscripted-ui-server.git",
-                "reference": "ca40bddd647b363f4721401b8116e971dc8327eb"
+                "reference": "af1c2e3a970a5c22cc571f2f0acffb422ec941dc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mattsplat/unscripted-ui-server/zipball/ca40bddd647b363f4721401b8116e971dc8327eb",
-                "reference": "ca40bddd647b363f4721401b8116e971dc8327eb",
+                "url": "https://api.github.com/repos/mattsplat/unscripted-ui-server/zipball/af1c2e3a970a5c22cc571f2f0acffb422ec941dc",
+                "reference": "af1c2e3a970a5c22cc571f2f0acffb422ec941dc",
                 "shasum": ""
             },
             "require": {
@@ -6973,7 +6973,7 @@
                 "source": "https://github.com/mattsplat/unscripted-ui-server/tree/main",
                 "issues": "https://github.com/mattsplat/unscripted-ui-server/issues"
             },
-            "time": "2026-11-06T00:35:25+00:00"
+            "time": "2026-11-06T20:09:25+00:00"
         },
         {
             "name": "vlucas/phpdotenv",
